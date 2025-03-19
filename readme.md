@@ -12,5 +12,5 @@ A Tkinter-based application to visualize solving the 8-puzzle problem using vari
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/8-puzzle-visualizer.git
+   git clone https://github.com/1440isme/8-PuzzleAlgorithmVisualizer.git
    ```
