@@ -8,12 +8,12 @@ def bfs(initial_state, goal_state):
     while queue:
         state, path = queue.popleft()
         if state == goal_state:
-            return path + [state]
+            return path + [state], len(visited)  # Trả về cả số trạng thái đã khám phá
         
         blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
         moves = [(-1, 0, 'UP'), (1, 0, 'DOWN'), (0, -1, 'LEFT'), (0, 1, 'RIGHT')]
         
-        for di, dj, _ in moves:
+        for di, dj, move_name in moves:
             new_i, new_j = blank_i + di, blank_j + dj
             if 0 <= new_i < 3 and 0 <= new_j < 3:
                 new_state = [list(row) for row in state]
@@ -22,12 +22,12 @@ def bfs(initial_state, goal_state):
                 if str(new_state_tuple) not in visited:
                     queue.append((new_state_tuple, path + [state]))
                     visited.add(str(new_state_tuple))
-    return []
+    return [], len(visited)
 
 def dfs(initial_state, goal_state, max_depth=30):
     def dfs_recursive(state, path, visited, depth):
         if state == goal_state:
-            return path + [state]
+            return path + [state], len(visited)
         if depth >= max_depth:
             return None
         
@@ -47,8 +47,11 @@ def dfs(initial_state, goal_state, max_depth=30):
                         return result
         return None
     
-    visited = set([initial_state])
-    return dfs_recursive(initial_state, [], visited, 0) or []
+    visited = set([str(initial_state)])
+    result = dfs_recursive(initial_state, [], visited, 0)
+    if result:
+        return result  # Trả về (path, len(visited))
+    return [], len(visited)  # Trả về danh sách rỗng và số trạng thái đã khám phá nếu không tìm thấy giải pháp
 
 def ucs(initial_state, goal_state):
     queue = [(0, 0, initial_state, [])]  # (cost, tiebreaker, state, path)
@@ -58,7 +61,7 @@ def ucs(initial_state, goal_state):
     while queue:
         cost, _, state, path = heapq.heappop(queue)
         if state == goal_state:
-            return path + [state]
+            return path + [state], len(visited)
         
         blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
         moves = [(-1, 0, 'UP'), (1, 0, 'DOWN'), (0, -1, 'LEFT'), (0, 1, 'RIGHT')]
@@ -73,12 +76,12 @@ def ucs(initial_state, goal_state):
                     tiebreaker += 1
                     heapq.heappush(queue, (cost + 1, tiebreaker, new_state_tuple, path + [state]))
                     visited.add(str(new_state_tuple))
-    return []
+    return [], len(visited)  # Trả về danh sách rỗng và số trạng thái đã khám phá nếu không tìm thấy giải pháp
 
 def ids(initial_state, goal_state):
     def dls(state, path, depth_limit, visited):
         if state == goal_state:
-            return path + [state]
+            return path + [state], len(visited)
         if len(path) >= depth_limit:
             return None
         
@@ -91,8 +94,8 @@ def ids(initial_state, goal_state):
                 new_state = [list(row) for row in state]
                 new_state[blank_i][blank_j], new_state[new_i][new_j] = new_state[new_i][new_j], new_state[blank_i][blank_j]
                 new_state_tuple = tuple(tuple(row) for row in new_state)
-                if new_state_tuple not in visited:
-                    visited.add(new_state_tuple)
+                if str(new_state_tuple) not in visited:
+                    visited.add(str(new_state_tuple))
                     result = dls(new_state_tuple, path + [state], depth_limit, visited)
                     if result:
                         return result
@@ -105,5 +108,6 @@ def ids(initial_state, goal_state):
         visited.add(str(initial_state))
         result = dls(initial_state, [], depth, visited)
         if result:
-            return result
+            return result  # Trả về (path, len(visited))
         depth += 1
+    return [], len(visited)  # Trả về danh sách rỗng và số trạng thái đã khám phá nếu không tìm thấy giải pháp

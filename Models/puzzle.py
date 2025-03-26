@@ -50,12 +50,3 @@ def is_solvable(state):
             if flat_state[i] > flat_state[j]:
                 inversions += 1
     return inversions % 2 == 0
-
-def parse_state(state_str):
-    try:
-        nums = [int(x.strip()) for x in state_str.split(",")]
-        if len(nums) != 9 or set(nums) != set(range(9)):
-            raise ValueError("Invalid input")
-        return [nums[i:i+3] for i in range(0, 9, 3)]
-    except:
-        return None
