@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import copy
 from Algorithms.uninformed import bfs, dfs, ucs, ids
-from Algorithms.informed import greedy_search, a_star, ida_star
+from Algorithms.informed import greedy_search, a_star, ida_star, hill_climbing, simple_hill_climbing  # Thêm import simple_hill_climbing
 from Models.puzzle import is_solvable
 import time
 
@@ -52,6 +52,14 @@ class PuzzleVisualizer(tk.Tk):
         idastar_btn = tk.Button(algorithm_frame, text="IDA*", width=10,
                             command=lambda: self.set_algorithm("IDA*"))
         idastar_btn.pack(side=tk.LEFT, padx=5)
+        
+        hillclimbing_btn = tk.Button(algorithm_frame, text="Hill Climbing", width=12,
+                                     command=lambda: self.set_algorithm("Hill Climbing"))
+        hillclimbing_btn.pack(side=tk.LEFT, padx=5)
+        
+        simplehill_btn = tk.Button(algorithm_frame, text="Simple Hill", width=12,  # Thêm nút Simple Hill
+                                   command=lambda: self.set_algorithm("Simple Hill"))
+        simplehill_btn.pack(side=tk.LEFT, padx=5)
         
         main_frame = tk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -118,8 +126,7 @@ class PuzzleVisualizer(tk.Tk):
         puzzle_frame = tk.Frame(content_frame)
         puzzle_frame.pack(side=tk.LEFT, padx=10)
         
-        # Tăng kích thước canvas
-        self.canvas = tk.Canvas(puzzle_frame, width=450, height=450, bg="white")  # Tăng từ 400x400 lên 450x450
+        self.canvas = tk.Canvas(puzzle_frame, width=450, height=450, bg="white")
         self.canvas.pack(pady=20)
         
         # Phần DataStructure (chiều rộng ngang bằng puzzle)
@@ -215,21 +222,29 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = a_star(self.start_state, self.goal_state)
         elif self.algorithm.get() == "IDA*":
             self.solution_path, visited_count = ida_star(self.start_state, self.goal_state)
+        elif self.algorithm.get() == "Hill Climbing":
+            self.solution_path, visited_count = hill_climbing(self.start_state, self.goal_state)
+        elif self.algorithm.get() == "Simple Hill":  # Thêm trường hợp cho Simple Hill Climbing
+            self.solution_path, visited_count = simple_hill_climbing(self.start_state, self.goal_state)
         
         end_time = time.time()
         runtime = end_time - start_time
         
-        if self.solution_path:
+        # Kiểm tra trạng thái cuối cùng của solution_path để in thông báo
+        if self.solution_path and self.solution_path[-1] == self.goal_state:
             steps = len(self.solution_path) - 1
             self.log_text.insert(tk.END, f"Solution found!\n")
             self.log_text.insert(tk.END, f"Number of steps: {steps}\n")
             self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
             self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
-            self.animate_solution()
         else:
             self.log_text.insert(tk.END, "No solution found!\n")
             self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
             self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
+        
+        # Luôn hiển thị đường đi nếu solution_path không rỗng
+        if self.solution_path:
+            self.animate_solution()
     
     def randomize_start_state(self):
         import random
@@ -285,7 +300,7 @@ class PuzzleVisualizer(tk.Tk):
             else:
                 # Hiển thị toàn bộ đường đi trong DataStructure
                 self.data_text.delete(1.0, tk.END)
-                self.data_text.insert(tk.END, "Solution Path:\n")
+                self.data_text.insert(tk.END, "Path Taken:\n")
                 for i, state in enumerate(self.solution_path):
                     self.data_text.insert(tk.END, f"Step {i}: {str(state)}\n")
                 self.log_text.insert(tk.END, "Animation completed.\n")
@@ -311,6 +326,6 @@ class PuzzleVisualizer(tk.Tk):
                     color = colors[state[i][j]-1]
                     self.canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline="black", width=2)
                     self.canvas.create_text((x0+x1)//2, (y0+y1)//2, text=str(state[i][j]), 
-                                            font=("Arial", 24, "bold"), fill="black")  # Tăng font từ 20 lên 24
+                                            font=("Arial", 24, "bold"), fill="black")
                 else:
                     self.canvas.create_rectangle(x0, y0, x1, y1, fill="light gray", outline="black", width=2)

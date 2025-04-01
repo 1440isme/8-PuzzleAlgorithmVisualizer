@@ -8,7 +8,7 @@ def bfs(initial_state, goal_state):
     while queue:
         state, path = queue.popleft()
         if state == goal_state:
-            return path + [state], len(visited)  # Trả về cả số trạng thái đã khám phá
+            return path + [state], len(visited)
         
         blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
         moves = [(-1, 0, 'UP'), (1, 0, 'DOWN'), (0, -1, 'LEFT'), (0, 1, 'RIGHT')]
@@ -22,7 +22,7 @@ def bfs(initial_state, goal_state):
                 if str(new_state_tuple) not in visited:
                     queue.append((new_state_tuple, path + [state]))
                     visited.add(str(new_state_tuple))
-    return [], len(visited)
+    return [], len(visited)  # Đã đúng: trả về [] nếu không tìm thấy goal_state
 
 def dfs(initial_state, goal_state, max_depth=30):
     def dfs_recursive(state, path, visited, depth):
@@ -50,8 +50,8 @@ def dfs(initial_state, goal_state, max_depth=30):
     visited = set([str(initial_state)])
     result = dfs_recursive(initial_state, [], visited, 0)
     if result:
-        return result  # Trả về (path, len(visited))
-    return [], len(visited)  # Trả về danh sách rỗng và số trạng thái đã khám phá nếu không tìm thấy giải pháp
+        return result
+    return [], len(visited)  # Đã đúng: trả về [] nếu không tìm thấy goal_state
 
 def ucs(initial_state, goal_state):
     queue = [(0, 0, initial_state, [])]  # (cost, tiebreaker, state, path)
@@ -76,7 +76,7 @@ def ucs(initial_state, goal_state):
                     tiebreaker += 1
                     heapq.heappush(queue, (cost + 1, tiebreaker, new_state_tuple, path + [state]))
                     visited.add(str(new_state_tuple))
-    return [], len(visited)  # Trả về danh sách rỗng và số trạng thái đã khám phá nếu không tìm thấy giải pháp
+    return [], len(visited)  # Đã đúng: trả về [] nếu không tìm thấy goal_state
 
 def ids(initial_state, goal_state):
     def dls(state, path, depth_limit, visited):
@@ -108,6 +108,8 @@ def ids(initial_state, goal_state):
         visited.add(str(initial_state))
         result = dls(initial_state, [], depth, visited)
         if result:
-            return result  # Trả về (path, len(visited))
+            return result
         depth += 1
-    return [], len(visited)  # Trả về danh sách rỗng và số trạng thái đã khám phá nếu không tìm thấy giải pháp
+        if depth > 50:  # Thêm giới hạn để tránh vòng lặp vô hạn
+            return [], len(visited)
+    return [], len(visited)  # Đã đúng: trả về [] nếu không tìm thấy goal_state
