@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import copy
 from Algorithms.uninformed import bfs, dfs, ucs, ids
-from Algorithms.informed import greedy_search, a_star, ida_star, hill_climbing,\
-      simple_hill_climbing, stochastic_hill_climbing, simulated_annealing, beam_search
+from Algorithms.informed import greedy_search, a_star, ida_star, beam_search
+from Algorithms.local_search import hill_climbing, simple_hill_climbing, stochastic_hill_climbing, simulated_annealing
 from Models.puzzle import is_solvable
 import time
 
@@ -79,8 +79,10 @@ class PuzzleVisualizer(tk.Tk):
         # Create tabs for algorithm categories
         uninformed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         informed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
+        local_search_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  # New tab for local search
         algorithm_frame.add(uninformed_tab, text="Uninformed Search")
         algorithm_frame.add(informed_tab, text="Informed Search")
+        algorithm_frame.add(local_search_tab, text="Local Search")  # Add the new tab
         
         # Uninformed search algorithms
         bfs_btn = self.create_button(uninformed_tab, "BFS", 
@@ -112,25 +114,26 @@ class PuzzleVisualizer(tk.Tk):
                             lambda: self.set_algorithm("IDA*"))
         idastar_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
-        hillclimbing_btn = self.create_button(informed_tab, "Hill Climbing", 
-                                    lambda: self.set_algorithm("Hill Climbing"), width=12)
-        hillclimbing_btn.pack(side=tk.LEFT, padx=5, pady=10)
-        
-        simplehill_btn = self.create_button(informed_tab, "Simple Hill", 
-                                   lambda: self.set_algorithm("Simple Hill"), width=12)
-        simplehill_btn.pack(side=tk.LEFT, padx=5, pady=10)
-
-        stochastichill_btn = self.create_button(informed_tab, "Stochastic Hill",
-                                     lambda: self.set_algorithm("Stochastic Hill"), width=12)
-        stochastichill_btn.pack(side=tk.LEFT, padx=5, pady=10)
-
-        simualatedannealing_btn = self.create_button(informed_tab, "Simulated Annealing",
-                                        lambda: self.set_algorithm("Simulated Annealing"), width=18)
-        simualatedannealing_btn.pack(side=tk.LEFT, padx=5, pady=10)
-
         beamsearch_btn = self.create_button(informed_tab, "Beam Search",
                                         lambda: self.set_algorithm("Beam Search"), width=12)
         beamsearch_btn.pack(side=tk.LEFT, padx=5, pady=10)
+        
+        # Local search algorithms
+        hillclimbing_btn = self.create_button(local_search_tab, "Hill Climbing", 
+                                    lambda: self.set_algorithm("Hill Climbing"), width=12)
+        hillclimbing_btn.pack(side=tk.LEFT, padx=5, pady=10)
+        
+        simplehill_btn = self.create_button(local_search_tab, "Simple Hill", 
+                                   lambda: self.set_algorithm("Simple Hill"), width=12)
+        simplehill_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        stochastichill_btn = self.create_button(local_search_tab, "Stochastic Hill",
+                                     lambda: self.set_algorithm("Stochastic Hill"), width=12)
+        stochastichill_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        simualatedannealing_btn = self.create_button(local_search_tab, "Simulated Annealing",
+                                        lambda: self.set_algorithm("Simulated Annealing"), width=18)
+        simualatedannealing_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # Main content with card-like design
         main_frame = tk.Frame(self, bg=self.colors["bg"])
