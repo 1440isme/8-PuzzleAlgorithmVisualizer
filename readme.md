@@ -117,6 +117,8 @@ Click the **Random** button to generate a random solvable start state that match
 ├── Algorithms/
 │   ├── uninformed.py       # Uninformed search algorithms (BFS, DFS, UCS, IDS).
 │   ├── informed.py         # Informed search algorithms (A*, Greedy, etc.).
+|   ├── local_search.py     # Local search algorithms (Hill Climbing, Simulated Annealing,.. )
+|   ├── and_or_search.py    # AND-OR search algorithms (AND-OR graph search,...)
 ├── GUI/
 │   ├── visualizer.py       # Main GUI logic for visualization.
 ├── Models/
