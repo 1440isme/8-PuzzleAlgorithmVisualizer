@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The **8-Puzzle Visualizer** is a Python-based application that demonstrates various Artificial Intelligence (AI) search algorithms for solving the classic 8-puzzle problem. This program provides an interactive graphical user interface (GUI) to visualize how different algorithms explore and solve the puzzle. It supports uninformed search, informed search, and local search strategies.
+The **8-Puzzle Visualizer** is a Python-based application that demonstrates various Artificial Intelligence (AI) search algorithms for solving the classic 8-puzzle problem. This program provides an interactive graphical user interface (GUI) to visualize how different algorithms explore and solve the puzzle. It supports uninformed search, informed search, local search strategies, and AND-OR search.
 
 ## Features
 
@@ -22,6 +22,8 @@ The **8-Puzzle Visualizer** is a Python-based application that demonstrates vari
       - Simple Hill Climbing
       - Stochastic Hill Climbing
     - Simulated Annealing
+  - Non-deterministic Search:
+    - AND-OR Search Algorithm
 - **GUI Features**:
   - Modern, user-friendly interface built with `Tkinter`.
   - Visualization of puzzle states and transitions.

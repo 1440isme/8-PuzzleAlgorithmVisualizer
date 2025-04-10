@@ -4,6 +4,7 @@ import copy
 from Algorithms.uninformed import bfs, dfs, ucs, ids
 from Algorithms.informed import greedy_search, a_star, ida_star, beam_search
 from Algorithms.local_search import hill_climbing, simple_hill_climbing, stochastic_hill_climbing, simulated_annealing
+from Algorithms.and_or_search import and_or_search  # Import the new algorithm
 from Models.puzzle import is_solvable
 import time
 
@@ -80,9 +81,11 @@ class PuzzleVisualizer(tk.Tk):
         uninformed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         informed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         local_search_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  # New tab for local search
+        and_or_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  # New tab for AND-OR search
         algorithm_frame.add(uninformed_tab, text="Uninformed Search")
         algorithm_frame.add(informed_tab, text="Informed Search")
         algorithm_frame.add(local_search_tab, text="Local Search")  # Add the new tab
+        algorithm_frame.add(and_or_tab, text="AND-OR Search")  # Add the new tab
         
         # Uninformed search algorithms
         bfs_btn = self.create_button(uninformed_tab, "BFS", 
@@ -134,6 +137,11 @@ class PuzzleVisualizer(tk.Tk):
         simualatedannealing_btn = self.create_button(local_search_tab, "Simulated Annealing",
                                         lambda: self.set_algorithm("Simulated Annealing"), width=18)
         simualatedannealing_btn.pack(side=tk.LEFT, padx=5, pady=10)
+        
+        # AND-OR search algorithm
+        andor_btn = self.create_button(and_or_tab, "AND-OR Search", 
+                                   lambda: self.set_algorithm("AND-OR Search"), width=14)
+        andor_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # Main content with card-like design
         main_frame = tk.Frame(self, bg=self.colors["bg"])
@@ -429,6 +437,8 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = simulated_annealing(self.start_state, self.goal_state)
         elif self.algorithm.get() == "Beam Search":
             self.solution_path, visited_count = beam_search(self.start_state, self.goal_state)
+        elif self.algorithm.get() == "AND-OR Search":
+            self.solution_path, visited_count = and_or_search(self.start_state, self.goal_state)
         
         end_time = time.time()
         runtime = end_time - start_time
