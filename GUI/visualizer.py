@@ -1,10 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import copy
-from Algorithms.uninformed import bfs, dfs, ucs, ids
+from Algorithms.uninformed import bfs, dfs, ucs, ids, bfs_belief
 from Algorithms.informed import greedy_search, a_star, ida_star, beam_search
 from Algorithms.local_search import hill_climbing, simple_hill_climbing, stochastic_hill_climbing, simulated_annealing
-from Algorithms.and_or_search import and_or_search  # Import the new algorithm
+from Algorithms.and_or_search import and_or_search
+from Algorithms.probabilistic_search import belief_state_search, physical_search
 from Models.puzzle import is_solvable
 import time
 
@@ -80,18 +81,24 @@ class PuzzleVisualizer(tk.Tk):
         # Create tabs for algorithm categories
         uninformed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         informed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
-        local_search_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  # New tab for local search
-        and_or_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  # New tab for AND-OR search
+        local_search_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
+        and_or_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
+        probabilistic_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         algorithm_frame.add(uninformed_tab, text="Uninformed Search")
         algorithm_frame.add(informed_tab, text="Informed Search")
-        algorithm_frame.add(local_search_tab, text="Local Search")  # Add the new tab
-        algorithm_frame.add(and_or_tab, text="AND-OR Search")  # Add the new tab
+        algorithm_frame.add(local_search_tab, text="Local Search") 
+        algorithm_frame.add(and_or_tab, text="AND-OR Search")  
+        algorithm_frame.add(probabilistic_tab, text="Probabilistic Search")
         
         # Uninformed search algorithms
         bfs_btn = self.create_button(uninformed_tab, "BFS", 
                             lambda: self.set_algorithm("BFS"))
         bfs_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
+        bfs_belief_btn = self.create_button(uninformed_tab, "BFS Belief",
+                            lambda: self.set_algorithm("BFS Belief"))        
+        bfs_belief_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
         dfs_btn = self.create_button(uninformed_tab, "DFS",
                             lambda: self.set_algorithm("DFS"))
         dfs_btn.pack(side=tk.LEFT, padx=5, pady=10)
@@ -142,6 +149,14 @@ class PuzzleVisualizer(tk.Tk):
         andor_btn = self.create_button(and_or_tab, "AND-OR Search", 
                                    lambda: self.set_algorithm("AND-OR Search"), width=14)
         andor_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        belief_btn = self.create_button(probabilistic_tab, "Belief State Search",
+                                    lambda: self.set_algorithm("Belief State Search"), width=18)
+        belief_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        physical_btn = self.create_button(probabilistic_tab, "Physical Search",
+                                    lambda: self.set_algorithm("Physical Search"), width=18)
+        physical_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # Main content with card-like design
         main_frame = tk.Frame(self, bg=self.colors["bg"])
@@ -415,6 +430,8 @@ class PuzzleVisualizer(tk.Tk):
         start_time = time.time()
         if self.algorithm.get() == "BFS":
             self.solution_path, visited_count = bfs(self.start_state, self.goal_state)
+        elif self.algorithm.get() == "BFS Belief":
+            self.solution_path, visited_count = bfs_belief(self.start_state, self.goal_state)
         elif self.algorithm.get() == "DFS":
             self.solution_path, visited_count = dfs(self.start_state, self.goal_state)
         elif self.algorithm.get() == "UCS":
@@ -439,6 +456,10 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = beam_search(self.start_state, self.goal_state)
         elif self.algorithm.get() == "AND-OR Search":
             self.solution_path, visited_count = and_or_search(self.start_state, self.goal_state)
+        elif self.algorithm.get() == "Belief State Search":
+            self.solution_path, visited_count = belief_state_search(self.start_state, self.goal_state)
+        elif self.algorithm.get() == "Physical Search":
+            self.solution_path, visited_count = physical_search(self.start_state, self.goal_state)
         
         end_time = time.time()
         runtime = end_time - start_time
