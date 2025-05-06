@@ -3,9 +3,10 @@ from tkinter import ttk, messagebox
 import copy
 from Algorithms.uninformed import bfs, dfs, ucs, ids, bfs_belief
 from Algorithms.informed import greedy_search, a_star, ida_star, beam_search
-from Algorithms.local_search import hill_climbing, simple_hill_climbing, stochastic_hill_climbing, simulated_annealing
+from Algorithms.local_search import hill_climbing, simple_hill_climbing, stochastic_hill_climbing, simulated_annealing, trial_and_error_search
 from Algorithms.and_or_search import and_or_search
 from Algorithms.probabilistic_search import belief_state_search, physical_search
+from Algorithms.constraint import solve as constraint_solve, solve_with_ac3
 from Models.puzzle import is_solvable
 import time
 
@@ -84,11 +85,13 @@ class PuzzleVisualizer(tk.Tk):
         local_search_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
         and_or_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
         probabilistic_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
+        csp_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         algorithm_frame.add(uninformed_tab, text="Uninformed Search")
         algorithm_frame.add(informed_tab, text="Informed Search")
         algorithm_frame.add(local_search_tab, text="Local Search") 
         algorithm_frame.add(and_or_tab, text="AND-OR Search")  
         algorithm_frame.add(probabilistic_tab, text="Probabilistic Search")
+        algorithm_frame.add(csp_tab, text="Constraint Satisfaction")
         
         # Uninformed search algorithms
         bfs_btn = self.create_button(uninformed_tab, "BFS", 
@@ -110,6 +113,7 @@ class PuzzleVisualizer(tk.Tk):
         ids_btn = self.create_button(uninformed_tab, "IDS",
                             lambda: self.set_algorithm("IDS"))
         ids_btn.pack(side=tk.LEFT, padx=5, pady=10)
+        
         
         # Informed search algorithms
         greedy_btn = self.create_button(informed_tab, "Greedy",
@@ -144,6 +148,10 @@ class PuzzleVisualizer(tk.Tk):
         simualatedannealing_btn = self.create_button(local_search_tab, "Simulated Annealing",
                                         lambda: self.set_algorithm("Simulated Annealing"), width=18)
         simualatedannealing_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        trialanderror_btn = self.create_button(local_search_tab, "Trial and Error",
+                                        lambda: self.set_algorithm("Trial and Error"), width=18)
+        trialanderror_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # AND-OR search algorithm
         andor_btn = self.create_button(and_or_tab, "AND-OR Search", 
@@ -157,6 +165,15 @@ class PuzzleVisualizer(tk.Tk):
         physical_btn = self.create_button(probabilistic_tab, "Physical Search",
                                     lambda: self.set_algorithm("Physical Search"), width=18)
         physical_btn.pack(side=tk.LEFT, padx=5, pady=10)
+        
+        # Constraint Satisfaction algorithms
+        backtracking_csp_btn = self.create_button(csp_tab, "Backtracking", 
+                               lambda: self.set_algorithm("Backtracking CSP"), width=15)
+        backtracking_csp_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        ac3_btn = self.create_button(csp_tab, "AC-3", 
+                   lambda: self.set_algorithm("AC-3"), width=8)
+        ac3_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # Main content with card-like design
         main_frame = tk.Frame(self, bg=self.colors["bg"])
@@ -438,6 +455,7 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = ucs(self.start_state, self.goal_state)
         elif self.algorithm.get() == "IDS":
             self.solution_path, visited_count = ids(self.start_state, self.goal_state)
+        
         elif self.algorithm.get() == "Greedy":
             self.solution_path, visited_count = greedy_search(self.start_state, self.goal_state)
         elif self.algorithm.get() == "A*":
@@ -452,6 +470,8 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = stochastic_hill_climbing(self.start_state, self.goal_state)
         elif self.algorithm.get() == "Simulated Annealing":
             self.solution_path, visited_count = simulated_annealing(self.start_state, self.goal_state)
+        elif self.algorithm.get() == "Trial and Error":
+            self.solution_path, visited_count = trial_and_error_search(self.start_state, self.goal_state)
         elif self.algorithm.get() == "Beam Search":
             self.solution_path, visited_count = beam_search(self.start_state, self.goal_state)
         elif self.algorithm.get() == "AND-OR Search":
@@ -460,6 +480,14 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = belief_state_search(self.start_state, self.goal_state)
         elif self.algorithm.get() == "Physical Search":
             self.solution_path, visited_count = physical_search(self.start_state, self.goal_state)
+        elif self.algorithm.get() == "Backtracking CSP":
+            result = constraint_solve(self.start_state)
+            self.solution_path = result['path']
+            visited_count = result['nodes_expanded']
+        elif self.algorithm.get() == "AC-3":
+            result = solve_with_ac3(self.start_state)
+            self.solution_path = result['path']
+            visited_count = result['nodes_expanded']
         
         end_time = time.time()
         runtime = end_time - start_time

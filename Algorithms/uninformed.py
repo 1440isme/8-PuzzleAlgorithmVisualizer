@@ -153,3 +153,4 @@ def ids(initial_state, goal_state):
         if depth > 50:  # Thêm giới hạn để tránh vòng lặp vô hạn
             return [], len(visited)
     return [], len(visited)  # Đã đúng: trả về [] nếu không tìm thấy goal_state
+
