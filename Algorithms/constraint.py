@@ -1,218 +1,260 @@
-def solve(initial_state):
-    nodes_expanded = [0]
-    max_depth = [0]
-    path = []
+# Hàm backtracking_with_steps (giữ nguyên từ trước)
+def backtracking_with_steps(initial_state, goal_state):
+    # Hàm chuyển đổi từ dạng 3x3 (tuple/danh sách) sang danh sách phẳng
+    def flatten_state(state):
+        if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
+            return [state[i][j] for i in range(3) for j in range(3)]
+        elif isinstance(state, (list, tuple)) and len(state) == 9:
+            return list(state)
+        else:
+            raise ValueError("State must be a 3x3 grid (list/tuple of lists/tuples) or a flat list/tuple with 9 elements")
 
-    flat_state = [num for row in initial_state for num in row]
-    variables = [f"X{i+1}" for i in range(9)]
-    value_order = flat_state.copy()
-    domains = {var: value_order.copy() for var in variables}
-    constraints = create_constraints_for_8puzzle()
+    # Chuyển initial_state và goal_state về dạng danh sách phẳng
+    initial_flat = flatten_state(initial_state)
+    goal_flat = flatten_state(goal_state)
 
-    csp = {
-        'variables': variables,
-        'domains': domains,
-        'constraints': constraints,
-        'initial_assignment': {}
-    }
+    # Kiểm tra dữ liệu đầu vào
+    if set(initial_flat) != set(range(9)) or set(goal_flat) != set(range(9)):
+        raise ValueError("States must contain exactly the numbers 0 to 8")
 
-    result = backtrack({}, 0, csp, nodes_expanded, max_depth, path)
+    # Chuyển goal state thành dạng bảng 3x3 để dễ kiểm tra
+    goal = [[goal_flat[i * 3 + j] for j in range(3)] for i in range(3)]
+    # Bảng ban đầu là bảng trống
+    board = [[None for _ in range(3)] for _ in range(3)]
+    # Danh sách các bước để hiển thị animation
+    steps = []
+    # Đếm số trạng thái đã thăm
+    visited_count = 0
 
-    if result:
-        solution_grid = [[0 for _ in range(3)] for _ in range(3)]
-        for var, value in result.items():
-            idx = int(var[1:]) - 1
-            row, col = idx // 3, idx % 3
-            solution_grid[row][col] = value
-
-        return {
-            'path': path,
-            'nodes_expanded': nodes_expanded[0],
-            'max_depth': max_depth[0],
-            'solution': solution_grid
-        }
-    else:
-        return {
-            'path': [],
-            'nodes_expanded': nodes_expanded[0],
-            'max_depth': max_depth[0],
-            'solution': None
-        }
-
-def create_constraints_for_8puzzle():
-    """Creates constraints specific to 8-puzzle mechanics"""
-    constraints = []
-    
-    # Only one cell can have value 0 (empty space)
-    # Only valid moves are those where the empty space moves
-    # Each move must result in a valid 8-puzzle configuration
-    
-    # Define adjacent positions in the grid
-    adjacency = {
-        'X1': ['X2', 'X4'],
-        'X2': ['X1', 'X3', 'X5'],
-        'X3': ['X2', 'X6'],
-        'X4': ['X1', 'X5', 'X7'],
-        'X5': ['X2', 'X4', 'X6', 'X8'],
-        'X6': ['X3', 'X5', 'X9'],
-        'X7': ['X4', 'X8'],
-        'X8': ['X5', 'X7', 'X9'],
-        'X9': ['X6', 'X8']
-    }
-    
-    # Only one position can have the empty space (0)
-    def one_empty_space(assignment):
-        return list(assignment.values()).count(0) <= 1
-    
-    constraints.append(('all', one_empty_space))
-    
-    # Create constraints for valid moves
-    for pos, neighbors in adjacency.items():
-        for neighbor in neighbors:
-            # If one position has 0, its neighbor can move there
-            constraints.append((pos, neighbor, lambda a, b: 
-                              not (a == 0 and b == 0) and   # Both can't be empty
-                              (a != 0 or b != 0)))          # At least one must be non-empty
-    
-    return constraints
-
-def is_consistent(var, value, assignment, csp):
-    if value in assignment.values():
+    def backtrack(pos, remaining_numbers):
+        nonlocal visited_count
+        # Tính vị trí ô hiện tại (i,j) từ chỉ số pos (0 đến 8)
+        i, j = divmod(pos, 3)
+        
+        # Nếu đã điền hết tất cả ô (pos = 9), kiểm tra xem có khớp goal state không
+        if pos == 9:
+            # Kiểm tra xem bảng có khớp với goal state không
+            if all(board[i][j] == goal[i][j] for i in range(3) for j in range(3)):
+                steps.append([row[:] for row in board])
+                return True
+            return False
+        
+        # Thử các số còn lại trong remaining_numbers
+        for idx, num in enumerate(remaining_numbers):
+            # Đặt số vào ô (i,j)
+            board[i][j] = num
+            # Lưu trạng thái hiện tại để hiển thị animation
+            steps.append([row[:] for row in board])
+            visited_count += 1
+            
+            # Loại số này khỏi danh sách còn lại
+            next_numbers = remaining_numbers[:idx] + remaining_numbers[idx+1:]
+            # Đệ quy để điền ô tiếp theo
+            if backtrack(pos + 1, next_numbers):
+                return True
+            
+            # Nếu không thành công, quay lui: bỏ số ra khỏi ô
+            board[i][j] = None
+            # Lưu trạng thái sau khi bỏ số (để hiển thị animation)
+            steps.append([row[:] for row in board])
+        
         return False
 
-    temp_assignment = assignment.copy()
-    temp_assignment[var] = value
+    # Chuyển initial_state thành danh sách để dễ xử lý
+    numbers = initial_flat[:]
+    # Gọi Backtracking từ ô đầu tiên (pos = 0)
+    success = False
+    # Thử từng số trong start state làm điểm bắt đầu (dịch vòng danh sách)
+    for start_idx in range(len(numbers)):
+        remaining_numbers = numbers[start_idx:] + numbers[:start_idx]
+        board = [[None for _ in range(3)] for _ in range(3)]
+        steps = []
+        visited_count = 0
+        if backtrack(0, remaining_numbers):
+            success = True
+            break
+    
+    if not success:
+        return [], visited_count
+    
+    return steps, visited_count
 
-    for constraint in csp['constraints']:
-        if len(constraint) == 2:
-            name, constraint_func = constraint
-            if not constraint_func(temp_assignment):
-                return False
-        elif len(constraint) == 3:
-            var1, var2, constraint_func = constraint
-            if var1 in temp_assignment and var2 in temp_assignment:
-                if not constraint_func(temp_assignment[var1], temp_assignment[var2]):
-                    return False
-
-    return True
-
-def backtrack(assignment, index, csp, nodes_expanded, max_depth, path):
-    nodes_expanded[0] += 1
-    max_depth[0] = max(max_depth[0], len(assignment))
-
-    if assignment:
-        grid = [[0 for _ in range(3)] for _ in range(3)]
-        for var, value in assignment.items():
-            idx = int(var[1:]) - 1
-            row, col = idx // 3, idx % 3
-            grid[row][col] = value
-        path.append(grid)
-
-    if index == len(csp['variables']):
-        return assignment
-
-    var = csp['variables'][index]
-
-    for value in csp['domains'][var]:
-        if is_consistent(var, value, assignment, csp):
-            assignment[var] = value
-            result = backtrack(assignment, index + 1, csp, nodes_expanded, max_depth, path)
-            if result:
-                return result
-            del assignment[var]
-    return None
-
+# Hàm AC-3: Đảm bảo tính nhất quán cung (arc consistency)
 def ac3(csp):
-    left_right_pairs = [('X1', 'X2'), ('X2', 'X3'), ('X4', 'X5'), ('X5', 'X6'), ('X7', 'X8')]
-    top_bottom_pairs = [('X1', 'X4'), ('X2', 'X5'), ('X3', 'X6'), ('X4', 'X7'), ('X5', 'X8')]
-    queue = [(Xi, Xj) for Xi, Xj in left_right_pairs + top_bottom_pairs] + \
-            [(Xj, Xi) for Xi, Xj in left_right_pairs + top_bottom_pairs]
-
+    """
+    Thuật toán AC-3 để đảm bảo tính nhất quán cung.
+    Args:
+        csp: Một dict chứa các thành phần của CSP:
+            - variables: List các biến (ô trong bảng 3x3).
+            - domains: Dict ánh xạ biến đến miền giá trị của nó.
+            - constraints: Dict ánh xạ cặp biến (var1, var2) đến hàm kiểm tra ràng buộc.
+    Returns:
+        - (True, domains, ac3_log): Nếu đạt nhất quán cung, trả về True, miền giá trị đã thu hẹp, và log của AC-3.
+        - (False, None, ac3_log): Nếu không thể đạt nhất quán cung (một miền rỗng), trả về False, None, và log.
+    """
+    # Hàng đợi chứa tất cả các cung (arcs)
+    queue = [(var1, var2) for var1 in csp['variables'] for var2 in csp['variables'] if var1 != var2 and (var1, var2) in csp['constraints']]
+    ac3_log = []  # Log các giá trị bị xóa để hiển thị trong visualizer
+    
     while queue:
-        Xi, Xj = queue.pop(0)
-        if remove_inconsistent_values(Xi, Xj, csp):
-            if len(csp['domains'][Xi]) == 0:
-                return False
-            neighbors = [pair[1] for pair in left_right_pairs + top_bottom_pairs if pair[0] == Xi] + \
-                        [pair[0] for pair in left_right_pairs + top_bottom_pairs if pair[1] == Xi]
-            for Xk in set(neighbors) - {Xj}:
-                queue.append((Xk, Xi))
-    return True
+        (xi, xj) = queue.pop(0)  # Lấy cung đầu tiên từ hàng đợi
+        if revise(csp, xi, xj, ac3_log):
+            # Nếu miền của xi bị sửa và trở thành rỗng, trả về False
+            if not csp['domains'][xi]:
+                ac3_log.append(f"Domain of {xi} became empty, CSP is unsolvable.")
+                return False, None, ac3_log
+            # Thêm các cung (xk, xi) vào hàng đợi, với xk là hàng xóm của xi (trừ xj)
+            for xk in [v for v in csp['variables'] if v != xi and v != xj and (xk, xi) in csp['constraints']]:
+                queue.append((xk, xi))
+    
+    return True, csp['domains'], ac3_log
 
-def remove_inconsistent_values(Xi, Xj, csp):
-    removed = False
+def revise(csp, xi, xj, ac3_log):
+    """
+    Hàm REVISE trong AC-3: Sửa miền giá trị của xi dựa trên ràng buộc với xj.
+    Args:
+        csp: Bài toán CSP.
+        xi, xj: Hai biến cần kiểm tra.
+        ac3_log: List để ghi lại log các giá trị bị xóa.
+    Returns:
+        True nếu miền của xi bị sửa, False nếu không.
+    """
+    revised = False
+    # Tạo bản sao của miền xi để tránh lỗi khi xóa phần tử trong lúc duyệt
+    di = csp['domains'][xi].copy()
+    for x in di:
+        # Nếu không tồn tại y trong Dj thỏa mãn ràng buộc giữa xi và xj
+        if not any(csp['constraints'][(xi, xj)](x, y) for y in csp['domains'][xj]):
+            csp['domains'][xi].remove(x)
+            ac3_log.append(f"Removed value {x} from domain of {xi} due to constraint with {xj}")
+            revised = True
+    return revised
 
-    for constraint in csp['constraints']:
-        if len(constraint) == 3:
-            var1, var2, func = constraint
-            if (var1 == Xi and var2 == Xj) or (var1 == Xj and var2 == Xi):
-                domain_Xi = csp['domains'][Xi].copy()
-                for x in domain_Xi:
-                    satisfied = False
-                    for y in csp['domains'][Xj]:
-                        if var1 == Xi and var2 == Xj and func(x, y):
-                            satisfied = True
-                            break
-                        elif var1 == Xj and var2 == Xi and func(y, x):
-                            satisfied = True
-                            break
-                    if not satisfied:
-                        csp['domains'][Xi].remove(x)
-                        removed = True
+# Hàm Backtracking tích hợp với AC-3
+def backtracking_with_ac3(initial_state, goal_state):
+    """
+    Hàm Backtracking sử dụng AC-3 để giải bài toán 8-Puzzle.
+    Args:
+        initial_state: Trạng thái ban đầu (danh sách 3x3).
+        goal_state: Trạng thái mục tiêu (danh sách 3x3).
+    Returns:
+        (steps, visited_count, ac3_log): Các bước giải (danh sách các trạng thái), số trạng thái đã thăm, và log của AC-3.
+    """
+    # Chuyển trạng thái thành dạng danh sách phẳng để kiểm tra
+    def flatten_state(state):
+        if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
+            return [state[i][j] for i in range(3) for j in range(3)]
+        elif isinstance(state, (list, tuple)) and len(state) == 9:
+            return list(state)
+        else:
+            raise ValueError("State must be a 3x3 grid (list/tuple of lists/tuples) or a flat list/tuple with 9 elements")
 
-    return removed
+    initial_flat = flatten_state(initial_state)
+    goal_flat = flatten_state(goal_state)
 
-def solve_with_ac3(initial_state=None):
-    nodes_expanded = [0]
-    max_depth = [0]
-    path = []
+    # Kiểm tra dữ liệu đầu vào
+    if set(initial_flat) != set(range(9)) or set(goal_flat) != set(range(9)):
+        raise ValueError("States must contain exactly the numbers 0 to 8")
 
-    variables = [f"X{i+1}" for i in range(9)]
-
-    if initial_state is None:
-        flat_state = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-    else:
-        flat_state = [num for row in initial_state for num in row]
-
-    value_order = flat_state.copy()
-    domains = {var: value_order.copy() for var in variables}
-    constraints = create_constraints_for_8puzzle()
-
+    # Biểu diễn bài toán dưới dạng CSP
+    # Biến: Mỗi ô là một biến, định dạng là tuple (i,j)
+    variables = [(i, j) for i in range(3) for j in range(3)]
+    
+    # Miền giá trị: Ban đầu là {0,1,...,8}, nhưng nếu ô đã có giá trị thì chỉ chứa giá trị đó
+    domains = {}
+    for i, j in variables:
+        value = initial_state[i][j]
+        if value is not None:  # Ô đã có giá trị cố định từ trạng thái ban đầu
+            domains[(i, j)] = [value]
+        else:
+            domains[(i, j)] = list(range(9))
+    
+    # Ràng buộc: All-Different (mỗi ô có giá trị khác nhau)
+    constraints = {}
+    for var1 in variables:
+        for var2 in variables:
+            if var1 != var2:
+                constraints[(var1, var2)] = lambda x, y: x != y
+    
+    # Tạo CSP
     csp = {
         'variables': variables,
         'domains': domains,
-        'constraints': constraints,
-        'initial_assignment': {}
+        'constraints': constraints
     }
+    
+    # Chạy AC-3 để thu hẹp miền giá trị
+    consistent, domains, ac3_log = ac3(csp)
+    if not consistent:
+        return [], 0, ac3_log  # Không thể giải, trả về danh sách bước rỗng
+    
+    # Chuyển goal state thành dạng bảng 3x3 để kiểm tra
+    goal = [[goal_flat[i * 3 + j] for j in range(3)] for i in range(3)]
+    # Bảng ban đầu là bảng trống
+    board = [[None for _ in range(3)] for _ in range(3)]
+    # Danh sách các bước để hiển thị animation
+    steps = []
+    # Đếm số trạng thái đã thăm
+    visited_count = 0
 
-    nodes_expanded[0] += 1
-    ac3_result = ac3(csp)
+    def backtrack(pos):
+        nonlocal visited_count
+        # Tính vị trí ô hiện tại (i,j) từ chỉ số pos (0 đến 8)
+        i, j = divmod(pos, 3)
+        var = (i, j)
+        
+        # Nếu đã điền hết tất cả ô (pos = 9), kiểm tra xem có khớp goal state không
+        if pos == 9:
+            if all(board[i][j] == goal[i][j] for i in range(3) for j in range(3)):
+                steps.append([row[:] for row in board])
+                return True
+            return False
+        
+        # Nếu ô đã có giá trị cố định từ initial_state, không cần thử giá trị mới
+        if initial_state[i][j] is not None:
+            board[i][j] = initial_state[i][j]
+            steps.append([row[:] for row in board])
+            if backtrack(pos + 1):
+                return True
+            board[i][j] = None
+            steps.append([row[:] for row in board])
+            return False
+        
+        # Thử các giá trị trong miền đã thu hẹp
+        for value in domains[var]:
+            # Kiểm tra xem giá trị này có thỏa mãn ràng buộc với các ô đã điền không
+            valid = True
+            for k in range(3):
+                for l in range(3):
+                    if (k, l) != (i, j) and board[k][l] is not None:
+                        if board[k][l] == value:
+                            valid = False
+                            break
+                if not valid:
+                    break
+            if not valid:
+                continue
+            
+            # Đặt số vào ô (i,j)
+            board[i][j] = value
+            steps.append([row[:] for row in board])
+            visited_count += 1
+            
+            # Đệ quy để điền ô tiếp theo
+            if backtrack(pos + 1):
+                return True
+            
+            # Nếu không thành công, quay lui: bỏ số ra khỏi ô
+            board[i][j] = None
+            steps.append([row[:] for row in board])
+        
+        return False
 
-    solution_grid = [[0 for _ in range(3)] for _ in range(3)]
-    partial_assignment = {}
-
-    for var in variables:
-        idx = int(var[1:]) - 1
-        row, col = idx // 3, idx % 3
-        domain = csp['domains'][var]
-        if len(domain) == 1:
-            value = domain[0]
-            solution_grid[row][col] = value
-            partial_assignment[var] = value
-        else:
-            if domain:
-                min_value = min(domain)
-                solution_grid[row][col] = min_value
-                partial_assignment[var] = min_value
-            else:
-                solution_grid[row][col] = 0
-
-    path.append(solution_grid)
-
-    return {
-        'path': path,
-        'nodes_expanded': nodes_expanded[0],
-        'max_depth': max_depth[0],
-        'solution': solution_grid if ac3_result else None
-    }
-
+    # Gọi Backtracking từ ô đầu tiên (pos = 0)
+    success = backtrack(0)
+    
+    if not success:
+        ac3_log.append("Backtracking failed to find a solution after AC-3.")
+        return [], visited_count, ac3_log
+    
+    return steps, visited_count, ac3_log

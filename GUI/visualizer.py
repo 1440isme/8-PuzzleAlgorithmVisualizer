@@ -6,7 +6,7 @@ from Algorithms.informed import greedy_search, a_star, ida_star, beam_search
 from Algorithms.local_search import hill_climbing, simple_hill_climbing, stochastic_hill_climbing, simulated_annealing, trial_and_error_search
 from Algorithms.and_or_search import and_or_search
 from Algorithms.probabilistic_search import belief_state_search, physical_search
-from Algorithms.constraint import solve as constraint_solve, solve_with_ac3
+from Algorithms.constraint import backtracking_with_steps, backtracking_with_ac3
 from Models.puzzle import is_solvable
 import time
 
@@ -114,7 +114,6 @@ class PuzzleVisualizer(tk.Tk):
                             lambda: self.set_algorithm("IDS"))
         ids_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
-        
         # Informed search algorithms
         greedy_btn = self.create_button(informed_tab, "Greedy",
                             lambda: self.set_algorithm("Greedy"))
@@ -167,13 +166,13 @@ class PuzzleVisualizer(tk.Tk):
         physical_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # Constraint Satisfaction algorithms
-        backtracking_csp_btn = self.create_button(csp_tab, "Backtracking", 
+        backtracking_csp_btn = self.create_button(csp_tab, "Backtracking CSP", 
                                lambda: self.set_algorithm("Backtracking CSP"), width=15)
         backtracking_csp_btn.pack(side=tk.LEFT, padx=5, pady=10)
 
-        ac3_btn = self.create_button(csp_tab, "AC-3", 
-                   lambda: self.set_algorithm("AC-3"), width=8)
-        ac3_btn.pack(side=tk.LEFT, padx=5, pady=10)
+        backtracking_ac3_btn = self.create_button(csp_tab, "Backtracking - AC-3", 
+                               lambda: self.set_algorithm("Backtracking - AC-3"), width=15)
+        backtracking_ac3_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # Main content with card-like design
         main_frame = tk.Frame(self, bg=self.colors["bg"])
@@ -400,19 +399,44 @@ class PuzzleVisualizer(tk.Tk):
             return
         
         state = self.solution_path[self.current_step]
+        # Chuyển đổi trạng thái thành danh sách 3x3 nếu cần (tùy thuộc vào thuật toán)
+        if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
+            state = [list(row) for row in state]
+        else:
+            state = [list(state[i:i+3]) for i in range(0, 9, 3)]
         self.current_state = state
         self.draw_puzzle(state)
         
-        if self.current_step > 0:
-            prev_state = self.solution_path[self.current_step-1]
-            moved_number = "unknown"
-            for i in range(3):
-                for j in range(3):
-                    if prev_state[i][j] != 0 and state[i][j] == 0:
-                        moved_number = prev_state[i][j]
-            self.log_text.insert(tk.END, f"Step {self.current_step}: Number {moved_number} moved\n")
+        if self.algorithm.get() in ["Backtracking CSP", "Backtracking - AC-3"]:
+            # Với Backtracking, hiển thị số được đặt hoặc bỏ đi
+            if self.current_step > 0:
+                prev_state = self.solution_path[self.current_step-1]
+                # Chuyển đổi prev_state thành danh sách 3x3 nếu cần
+                if isinstance(prev_state, (list, tuple)) and len(prev_state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in prev_state):
+                    prev_state = [list(row) for row in prev_state]
+                else:
+                    prev_state = [list(prev_state[i:i+3]) for i in range(0, 9, 3)]
+                # Tìm ô thay đổi
+                for i in range(3):
+                    for j in range(3):
+                        if prev_state[i][j] != state[i][j]:
+                            if state[i][j] is not None:
+                                self.log_text.insert(tk.END, f"Step {self.current_step}: Placed {state[i][j]} at position ({i},{j})\n")
+                            else:
+                                self.log_text.insert(tk.END, f"Step {self.current_step}: Removed {prev_state[i][j]} from position ({i},{j})\n")
+                            break
         else:
-            self.log_text.insert(tk.END, f"Step {self.current_step}: Initial state\n")
+            # Logic cũ cho các thuật toán khác (dựa trên số di chuyển)
+            if self.current_step > 0:
+                prev_state = self.solution_path[self.current_step-1]
+                moved_number = "unknown"
+                for i in range(3):
+                    for j in range(3):
+                        if prev_state[i][j] != 0 and state[i][j] == 0:
+                            moved_number = prev_state[i][j]
+                self.log_text.insert(tk.END, f"Step {self.current_step}: Number {moved_number} moved\n")
+            else:
+                self.log_text.insert(tk.END, f"Step {self.current_step}: Initial state\n")
         self.log_text.see(tk.END)
         
         self.current_step += 1
@@ -437,8 +461,8 @@ class PuzzleVisualizer(tk.Tk):
             messagebox.showerror("Error", "Cannot solve from the start state to the goal state!")
             return
         
-        self.start_state = tuple(tuple(row) for row in start_state)
-        self.goal_state = tuple(tuple(row) for row in goal_state)
+        self.start_state = start_state
+        self.goal_state = goal_state
         self.current_state = copy.deepcopy(self.start_state)
         
         self.log_text.delete(1.0, tk.END)
@@ -446,59 +470,79 @@ class PuzzleVisualizer(tk.Tk):
         
         start_time = time.time()
         if self.algorithm.get() == "BFS":
-            self.solution_path, visited_count = bfs(self.start_state, self.goal_state)
+            self.solution_path, visited_count = bfs(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "BFS Belief":
-            self.solution_path, visited_count = bfs_belief(self.start_state, self.goal_state)
+            self.solution_path, visited_count = bfs_belief(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "DFS":
-            self.solution_path, visited_count = dfs(self.start_state, self.goal_state)
+            self.solution_path, visited_count = dfs(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "UCS":
-            self.solution_path, visited_count = ucs(self.start_state, self.goal_state)
+            self.solution_path, visited_count = ucs(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "IDS":
-            self.solution_path, visited_count = ids(self.start_state, self.goal_state)
+            self.solution_path, visited_count = ids(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         
         elif self.algorithm.get() == "Greedy":
-            self.solution_path, visited_count = greedy_search(self.start_state, self.goal_state)
+            self.solution_path, visited_count = greedy_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "A*":
-            self.solution_path, visited_count = a_star(self.start_state, self.goal_state)
+            self.solution_path, visited_count = a_star(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "IDA*":
-            self.solution_path, visited_count = ida_star(self.start_state, self.goal_state)
+            self.solution_path, visited_count = ida_star(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Hill Climbing":
-            self.solution_path, visited_count = hill_climbing(self.start_state, self.goal_state)
+            self.solution_path, visited_count = hill_climbing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Simple Hill":  
-            self.solution_path, visited_count = simple_hill_climbing(self.start_state, self.goal_state)
+            self.solution_path, visited_count = simple_hill_climbing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Stochastic Hill":
-            self.solution_path, visited_count = stochastic_hill_climbing(self.start_state, self.goal_state)
+            self.solution_path, visited_count = stochastic_hill_climbing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Simulated Annealing":
-            self.solution_path, visited_count = simulated_annealing(self.start_state, self.goal_state)
+            self.solution_path, visited_count = simulated_annealing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Trial and Error":
-            self.solution_path, visited_count = trial_and_error_search(self.start_state, self.goal_state)
+            self.solution_path, visited_count = trial_and_error_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Beam Search":
-            self.solution_path, visited_count = beam_search(self.start_state, self.goal_state)
+            self.solution_path, visited_count = beam_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "AND-OR Search":
-            self.solution_path, visited_count = and_or_search(self.start_state, self.goal_state)
+            self.solution_path, visited_count = and_or_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Belief State Search":
-            self.solution_path, visited_count = belief_state_search(self.start_state, self.goal_state)
+            self.solution_path, visited_count = belief_state_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Physical Search":
-            self.solution_path, visited_count = physical_search(self.start_state, self.goal_state)
+            self.solution_path, visited_count = physical_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Backtracking CSP":
-            result = constraint_solve(self.start_state)
-            self.solution_path = result['path']
-            visited_count = result['nodes_expanded']
-        elif self.algorithm.get() == "AC-3":
-            result = solve_with_ac3(self.start_state)
-            self.solution_path = result['path']
-            visited_count = result['nodes_expanded']
+            self.solution_path, visited_count = backtracking_with_steps(self.start_state, self.goal_state)
+            self.log_text.delete(1.0, tk.END)
+            self.log_text.insert(tk.END, f"Visited states: {visited_count}\n")
+            self.log_text.insert(tk.END, f"Path length: {len(self.solution_path)}\n")
+        elif self.algorithm.get() == "Backtracking - AC-3":
+            self.solution_path, visited_count, ac3_log = backtracking_with_ac3(self.start_state, self.goal_state)
+            self.log_text.delete(1.0, tk.END)
+            # Hiển thị log từ AC-3
+            if ac3_log:
+                self.log_text.insert(tk.END, "AC-3 Log:\n")
+                for log_entry in ac3_log:
+                    self.log_text.insert(tk.END, f"{log_entry}\n")
+            self.log_text.insert(tk.END, f"Visited states: {visited_count}\n")
+            self.log_text.insert(tk.END, f"Path length: {len(self.solution_path)}\n")
         
         end_time = time.time()
         runtime = end_time - start_time
         
         # Kiểm tra trạng thái cuối cùng của solution_path để in thông báo
-        if self.solution_path and self.solution_path[-1] == self.goal_state:
-            steps = len(self.solution_path) - 1
-            self.log_text.insert(tk.END, f"Solution found!\n")
-            self.log_text.insert(tk.END, f"Number of steps: {steps}\n")
-            self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
-            self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
+        if self.solution_path:
+            # Chuyển đổi trạng thái cuối cùng để so sánh với goal_state
+            final_state = self.solution_path[-1]
+            if isinstance(final_state, (list, tuple)) and len(final_state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in final_state):
+                final_flat = [final_state[i][j] for i in range(3) for j in range(3)]
+            else:
+                final_flat = final_state
+            goal_flat = [self.goal_state[i][j] for i in range(3) for j in range(3)]
+            
+            if final_flat == goal_flat:
+                steps = len(self.solution_path) - 1
+                self.log_text.insert(tk.END, f"Solution found!\n")
+                self.log_text.insert(tk.END, f"Number of steps: {steps}\n")
+                self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
+                self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
+            else:
+                self.log_text.insert(tk.END, "No solution found!\n")
+                self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
+                self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
         else:
             self.log_text.insert(tk.END, "No solution found!\n")
             self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
@@ -558,6 +602,11 @@ class PuzzleVisualizer(tk.Tk):
         def animate_step(step=0):
             if step < len(self.solution_path):
                 state = self.solution_path[step]
+                # Chuyển đổi trạng thái thành danh sách 3x3 nếu cần
+                if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
+                    state = [list(row) for row in state]
+                else:
+                    state = [list(state[i:i+3]) for i in range(0, 9, 3)]
                 self.current_state = state
                 self.draw_puzzle(state)
                 after_id = self.after(delay, lambda: animate_step(step + 1))
@@ -573,6 +622,11 @@ class PuzzleVisualizer(tk.Tk):
                 self.data_text.delete(1.0, tk.END)
                 self.data_text.insert(tk.END, "Path Taken:\n")
                 for i, state in enumerate(self.solution_path):
+                    # Chuyển đổi trạng thái để hiển thị
+                    if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
+                        state = [list(row) for row in state]
+                    else:
+                        state = [list(state[i:i+3]) for i in range(0, 9, 3)]
                     self.data_text.insert(tk.END, f"Step {i}: {str(state)}\n")
                 self.log_text.insert(tk.END, "Animation completed.\n")
         
@@ -644,7 +698,7 @@ class PuzzleVisualizer(tk.Tk):
                 x1 = x0 + cell_size
                 y1 = y0 + cell_size
                 
-                if state[i][j] != 0:
+                if state[i][j] is not None and state[i][j] != 0:
                     # Create shadow
                     self.canvas.create_rectangle(
                         x0 + 3, y0 + 3, 
