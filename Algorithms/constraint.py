@@ -104,7 +104,7 @@ def ac3(csp):
                 ac3_log.append(f"Domain of {xi} became empty, CSP is unsolvable.")
                 return False, None, ac3_log
             # Thêm các cung (xk, xi) vào hàng đợi, với xk là hàng xóm của xi (trừ xj)
-            for xk in [v for v in csp['variables'] if v != xi and v != xj and (xk, xi) in csp['constraints']]:
+            for xk in [v for v in csp['variables'] if v != xi and v != xj and (v, xi) in csp['constraints']]:
                 queue.append((xk, xi))
     
     return True, csp['domains'], ac3_log
@@ -160,21 +160,56 @@ def backtracking_with_ac3(initial_state, goal_state):
     # Biến: Mỗi ô là một biến, định dạng là tuple (i,j)
     variables = [(i, j) for i in range(3) for j in range(3)]
     
-    # Miền giá trị: Ban đầu là {0,1,...,8}, nhưng nếu ô đã có giá trị thì chỉ chứa giá trị đó
-    domains = {}
-    for i, j in variables:
-        value = initial_state[i][j]
-        if value is not None:  # Ô đã có giá trị cố định từ trạng thái ban đầu
-            domains[(i, j)] = [value]
-        else:
-            domains[(i, j)] = list(range(9))
+    # Miền giá trị: Ban đầu tất cả ô đều có thể nhận giá trị từ 0 đến 8
+    domains = {(i, j): list(range(9)) for i, j in variables}
     
-    # Ràng buộc: All-Different (mỗi ô có giá trị khác nhau)
+    # Ràng buộc
     constraints = {}
+    # Ràng buộc All-Different: Mỗi ô có giá trị khác nhau
     for var1 in variables:
         for var2 in variables:
             if var1 != var2:
                 constraints[(var1, var2)] = lambda x, y: x != y
+    
+    # Ràng buộc trạng thái ban đầu: X_{i,j} = initial_state[i][j]
+    for i in range(3):
+        for j in range(3):
+            value = initial_state[i][j]
+            var = (i, j)
+            # Thêm ràng buộc X_{i,j} = value
+            for other_var in variables:
+                if other_var != var:
+                    # Nếu (var, other_var) đã có ràng buộc All-Different, kết hợp với ràng buộc X_{i,j} = value
+                    if (var, other_var) in constraints:
+                        old_constraint = constraints[(var, other_var)]
+                        constraints[(var, other_var)] = lambda x, y, v=value, oc=old_constraint: x == v and oc(x, y)
+                    else:
+                        constraints[(var, other_var)] = lambda x, y, v=value: x == v
+                    # Đảm bảo cung ngược lại cũng tồn tại
+                    if (other_var, var) in constraints:
+                        old_constraint = constraints[(other_var, var)]
+                        constraints[(other_var, var)] = lambda y, x, v=value, oc=old_constraint: x == v and oc(y, x)
+                    else:
+                        constraints[(other_var, var)] = lambda y, x, v=value: x == v
+    
+    # Ràng buộc trạng thái mục tiêu: X_{i,j} = goal_state[i][j]
+    for i in range(3):
+        for j in range(3):
+            value = goal_state[i][j]
+            var = (i, j)
+            # Thêm ràng buộc X_{i,j} = value
+            for other_var in variables:
+                if other_var != var:
+                    if (var, other_var) in constraints:
+                        old_constraint = constraints[(var, other_var)]
+                        constraints[(var, other_var)] = lambda x, y, v=value, oc=old_constraint: x == v and oc(x, y)
+                    else:
+                        constraints[(var, other_var)] = lambda x, y, v=value: x == v
+                    if (other_var, var) in constraints:
+                        old_constraint = constraints[(other_var, var)]
+                        constraints[(other_var, var)] = lambda y, x, v=value, oc=old_constraint: x == v and oc(y, x)
+                    else:
+                        constraints[(other_var, var)] = lambda y, x, v=value: x == v
     
     # Tạo CSP
     csp = {
@@ -210,16 +245,6 @@ def backtracking_with_ac3(initial_state, goal_state):
                 return True
             return False
         
-        # Nếu ô đã có giá trị cố định từ initial_state, không cần thử giá trị mới
-        if initial_state[i][j] is not None:
-            board[i][j] = initial_state[i][j]
-            steps.append([row[:] for row in board])
-            if backtrack(pos + 1):
-                return True
-            board[i][j] = None
-            steps.append([row[:] for row in board])
-            return False
-        
         # Thử các giá trị trong miền đã thu hẹp
         for value in domains[var]:
             # Kiểm tra xem giá trị này có thỏa mãn ràng buộc với các ô đã điền không
@@ -227,7 +252,9 @@ def backtracking_with_ac3(initial_state, goal_state):
             for k in range(3):
                 for l in range(3):
                     if (k, l) != (i, j) and board[k][l] is not None:
-                        if board[k][l] == value:
+                        other_var = (k, l)
+                        if ((var, other_var) in constraints and not constraints[(var, other_var)](value, board[k][l])) or \
+                           ((other_var, var) in constraints and not constraints[(other_var, var)](board[k][l], value)):
                             valid = False
                             break
                 if not valid:

@@ -90,7 +90,7 @@ class PuzzleVisualizer(tk.Tk):
         algorithm_frame.add(informed_tab, text="Informed Search")
         algorithm_frame.add(local_search_tab, text="Local Search") 
         algorithm_frame.add(and_or_tab, text="AND-OR Search")  
-        algorithm_frame.add(probabilistic_tab, text="Probabilistic Search")
+        algorithm_frame.add(probabilistic_tab, text="Sensorless Search")
         algorithm_frame.add(csp_tab, text="Constraint Satisfaction")
         
         # Uninformed search algorithms
@@ -258,9 +258,9 @@ class PuzzleVisualizer(tk.Tk):
         tk.Label(speed_slider_frame, text="🐌", font=("Segoe UI", 12),
                 fg=self.colors["label_fg"], bg=self.colors["frame_bg"]).pack(side=tk.LEFT)
         
-        self.speed_scale = ttk.Scale(speed_slider_frame, from_=0.1, to=2.0,
-                                    orient=tk.HORIZONTAL)
-        self.speed_scale.set(0.5)
+        self.speed_scale = ttk.Scale(speed_slider_frame, from_=0.1, to=5.0, orient=tk.HORIZONTAL)
+        self.speed_scale.set(1.0)  # Giá trị mặc định
+        
         self.speed_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         
         tk.Label(speed_slider_frame, text="🚀", font=("Segoe UI", 12),

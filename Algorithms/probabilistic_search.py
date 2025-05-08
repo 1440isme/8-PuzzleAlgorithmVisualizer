@@ -1,6 +1,7 @@
 from collections import deque
 import random
 
+
 def is_goal(state, goal):
     return state == goal
 
@@ -88,30 +89,70 @@ def belief_state_search(initial_state, goal_state):
 
 # Physical Search
 def physical_search(initial_state, goal_state):
-    visited = set()
-    queue = deque([(initial_state, [initial_state])])
-    sensor_type = "local"
+    def is_solvable(state):
+        # Flatten the state for inversion count
+        if isinstance(state[0], (list, tuple)):
+            flat_state = [num for row in state for num in row]
+        else:
+            flat_state = list(state)
+
+        inv = 0
+        for i in range(8):
+            for j in range(i + 1, 9):
+                if flat_state[i] != 0 and flat_state[j] != 0 and flat_state[i] > flat_state[j]:
+                    inv += 1
+        return inv % 2 == 0
+
+    # Flatten initial and goal states
+    initial_state_flat = tuple(num for row in initial_state for num in row)
+    goal_state_flat = tuple(num for row in goal_state for num in row)
+
+    if not is_solvable(initial_state):
+        return [], 0
+
+    # Initialize queue with initial state and empty path
+    queue = deque([(initial_state_flat, [])])
+    visited = {initial_state_flat}
+    expansions = 0
+    moves = {
+        'up': (-1, 0),
+        'down': (1, 0),
+        'left': (0, -1),
+        'right': (0, 1)
+    }
 
     while queue:
-        state, path = queue.popleft()
-        state_tuple = tuple(tuple(row) for row in state)
+        current_state, path = queue.popleft()
+        current_state_2d = [list(current_state[i:i + 3]) for i in range(0, 9, 3)]
+        expansions += 1
 
-        if str(state_tuple) in visited:
-            continue
-        visited.add(str(state_tuple))
+        if current_state == goal_state_flat:
+            final_path = [initial_state]
+            current = initial_state_flat
+            for action in path:
+                zero_index = current.index(0)
+                row, col = divmod(zero_index, 3)
+                dr, dc = moves[action]
+                new_row, new_col = row + dr, col + dc
+                new_index = new_row * 3 + new_col
+                new_state = list(current)
+                new_state[zero_index], new_state[new_index] = new_state[new_index], new_state[zero_index]
+                current = tuple(new_state)
+                final_path.append([list(current[i:i + 3]) for i in range(0, 9, 3)])
+            return final_path, expansions
 
-        if is_goal(state, goal_state):
-            return path, len(visited)
+        # Get neighbors
+        zero_index = current_state.index(0)
+        row, col = divmod(zero_index, 3)
+        for action, (dr, dc) in moves.items():
+            new_row, new_col = row + dr, col + dc
+            if 0 <= new_row < 3 and 0 <= new_col < 3:
+                new_index = new_row * 3 + new_col
+                new_state = list(current_state)
+                new_state[zero_index], new_state[new_index] = new_state[new_index], new_state[zero_index]
+                new_state_tuple = tuple(new_state)
+                if new_state_tuple not in visited:
+                    visited.add(new_state_tuple)
+                    queue.append((new_state_tuple, path + [action]))
 
-        sensor_data = sensor_search(state, sensor_type)
-        neighbors = []
-        blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
-        for i, j, value in sensor_data:
-            new_state = [list(row) for row in state]
-            new_state[blank_i][blank_j], new_state[i][j] = new_state[i][j], new_state[blank_i][blank_j]
-            neighbors.append(tuple(tuple(row) for row in new_state))
-
-        for neighbor in neighbors:
-            queue.append((list(neighbor), path + [list(neighbor)]))
-
-    return [], len(visited)
+    return [], expansions
