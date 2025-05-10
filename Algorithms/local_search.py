@@ -331,19 +331,40 @@ def get_valid_moves(state):
             moves.append((new_i, new_j))
     return moves
 
-def create_child(parent1, parent2):
-    # Tạo con từ hai cha mẹ bằng cách kết hợp các bước di chuyển
-    child_state = copy.deepcopy(parent1.state)
+def random_selection(population, fitness_fn):
+    """Chọn ngẫu nhiên một cá thể từ quần thể dựa trên fitness"""
+    # Tính tổng fitness
+    total_fitness = sum(fitness_fn(ind) for ind in population)
+    if total_fitness == 0:
+        return random.choice(population)
+    
+    # Chọn ngẫu nhiên dựa trên fitness
+    r = random.uniform(0, total_fitness)
+    current_sum = 0
+    for individual in population:
+        current_sum += fitness_fn(individual)
+        if current_sum >= r:
+            return individual
+    return population[-1]
+
+def reproduce(parent1, parent2):
+    """Tạo con từ hai cha mẹ bằng cách kết hợp các bước di chuyển"""
+    # Chuyển đổi state thành list nếu là tuple
+    state1 = [list(row) for row in parent1.state] if isinstance(parent1.state, tuple) else parent1.state
+    state2 = [list(row) for row in parent2.state] if isinstance(parent2.state, tuple) else parent2.state
+    
+    # Tạo con từ parent1
+    child_state = copy.deepcopy(state1)
     child = PuzzleState(child_state, parent1.goal_state)
     
-    # Lấy một số bước di chuyển từ parent1 và một số từ parent2
+    # Lấy các bước di chuyển từ cả hai cha mẹ
     moves1 = get_valid_moves(parent1)
     moves2 = get_valid_moves(parent2)
     
-    # Chọn ngẫu nhiên một số bước di chuyển từ mỗi cha mẹ
-    num_moves = min(len(moves1), len(moves2))
-    if num_moves > 0:
-        crossover_point = random.randint(0, num_moves)
+    # Chọn điểm cắt ngẫu nhiên
+    if moves1 and moves2:
+        crossover_point = random.randint(0, min(len(moves1), len(moves2)))
+        # Kết hợp các bước di chuyển từ cả hai cha mẹ
         moves = moves1[:crossover_point] + moves2[crossover_point:]
         
         # Áp dụng các bước di chuyển
@@ -355,6 +376,7 @@ def create_child(parent1, parent2):
     return child
 
 def mutate(state, mutation_rate=0.1):
+    """Đột biến state với xác suất mutation_rate"""
     if random.random() < mutation_rate:
         # Thực hiện một bước di chuyển ngẫu nhiên
         moves = get_valid_moves(state)
@@ -365,49 +387,91 @@ def mutate(state, mutation_rate=0.1):
             state.fitness = state.calculate_fitness()
     return state
 
-def genetic_algorithm(initial_state, goal_state, population_size=50, generations=100, mutation_rate=0.1):
+def create_random_state(initial_state):
+    """Tạo một trạng thái ngẫu nhiên từ trạng thái ban đầu"""
+    state = copy.deepcopy(initial_state)
+    # Thực hiện ngẫu nhiên 10-20 bước di chuyển
+    num_moves = random.randint(10, 20)
+    for _ in range(num_moves):
+        blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
+        moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        valid_moves = []
+        for di, dj in moves:
+            new_i, new_j = blank_i + di, blank_j + dj
+            if 0 <= new_i < 3 and 0 <= new_j < 3:
+                valid_moves.append((new_i, new_j))
+        if valid_moves:
+            new_i, new_j = random.choice(valid_moves)
+            state[blank_i][blank_j], state[new_i][new_j] = state[new_i][new_j], state[blank_i][blank_j]
+    return state
+
+def find_path_to_solution(initial_state, target_state, max_steps=100):
+    """Tìm đường đi từ trạng thái ban đầu đến trạng thái đích"""
+    current_state = [list(row) for row in initial_state]
+    path = [current_state]
+    visited = set([str(current_state)])
+    steps = 0
+    
+    while current_state != target_state and steps < max_steps:
+        blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if current_state[i][j] == 0][0]
+        moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        best_next_state = None
+        best_next_distance = float('inf')
+        
+        for di, dj in moves:
+            new_i, new_j = blank_i + di, blank_j + dj
+            if 0 <= new_i < 3 and 0 <= new_j < 3:
+                next_state = [list(row) for row in current_state]
+                next_state[blank_i][blank_j], next_state[new_i][new_j] = next_state[new_i][new_j], next_state[blank_i][blank_j]
+                if str(next_state) not in visited:
+                    distance = manhattan_distance(next_state, target_state)
+                    if distance < best_next_distance:
+                        best_next_distance = distance
+                        best_next_state = next_state
+        
+        if best_next_state:
+            current_state = best_next_state
+            path.append(current_state)
+            visited.add(str(current_state))
+            steps += 1
+        else:
+            break
+    
+    return path
+
+def genetic_algorithm(initial_state, goal_state, population_size=100, generations=200, mutation_rate=0.2):
+    """Thuật toán Genetic Algorithm theo mã giả"""
     # Chuyển đổi initial_state thành list nếu là tuple
     if isinstance(initial_state, tuple):
         initial_state = [list(row) for row in initial_state]
     
-    # Khởi tạo quần thể
+    # Khởi tạo quần thể với các trạng thái ngẫu nhiên
     population = []
     for _ in range(population_size):
-        state = copy.deepcopy(initial_state)
+        state = create_random_state(initial_state)
         population.append(PuzzleState(state, goal_state))
     
+    visited = set()
     best_solution = None
     best_fitness = 0
-    visited = set()
+    no_improvement_count = 0
     
     for generation in range(generations):
-        # Sắp xếp quần thể theo fitness
-        population.sort(key=lambda x: x.fitness, reverse=True)
-        
-        # Cập nhật giải pháp tốt nhất
-        if population[0].fitness > best_fitness:
-            best_fitness = population[0].fitness
-            best_solution = copy.deepcopy(population[0].state)
-            
-            # Kiểm tra xem đã đạt đến trạng thái đích chưa
-            if manhattan_distance(best_solution, goal_state) == 0:
-                return [best_solution], len(visited)
-        
-        # Tạo quần thể mới
         new_population = []
         
-        # Giữ lại một số cá thể tốt nhất (elitism)
-        elite_size = population_size // 10
+        # Giữ lại 10% cá thể tốt nhất
+        population.sort(key=lambda x: x.fitness, reverse=True)
+        elite_size = max(1, population_size // 10)
         new_population.extend(population[:elite_size])
         
-        # Tạo các cá thể mới thông qua lai ghép và đột biến
+        # Tạo quần thể mới
         while len(new_population) < population_size:
-            # Chọn cha mẹ thông qua tournament selection
-            parent1 = random.choice(population[:population_size//2])
-            parent2 = random.choice(population[:population_size//2])
+            # Chọn cha mẹ
+            parent1 = random_selection(population, lambda x: x.fitness)
+            parent2 = random_selection(population, lambda x: x.fitness)
             
             # Tạo con
-            child = create_child(parent1, parent2)
+            child = reproduce(parent1, parent2)
             
             # Đột biến
             child = mutate(child, mutation_rate)
@@ -417,10 +481,31 @@ def genetic_algorithm(initial_state, goal_state, population_size=50, generations
             
             # Thêm vào tập đã thăm
             visited.add(str(child.state))
+            
+            # Cập nhật giải pháp tốt nhất
+            if child.fitness > best_fitness:
+                best_fitness = child.fitness
+                best_solution = copy.deepcopy(child.state)
+                no_improvement_count = 0
+                
+                # Kiểm tra xem đã đạt đến trạng thái đích chưa
+                if manhattan_distance(best_solution, goal_state) == 0:
+                    # Tìm đường đi từ trạng thái ban đầu đến trạng thái đích
+                    path = find_path_to_solution(initial_state, best_solution)
+                    return path, len(visited)
+            else:
+                no_improvement_count += 1
         
         population = new_population
+        
+        # Nếu không cải thiện sau 20 thế hệ, tăng đột biến
+        if no_improvement_count >= 20:
+            mutation_rate = min(0.5, mutation_rate * 1.5)
+            no_improvement_count = 0
     
     # Trả về giải pháp tốt nhất tìm được
     if best_solution:
-        return [best_solution], len(visited)
+        # Tìm đường đi từ trạng thái ban đầu đến giải pháp tốt nhất
+        path = find_path_to_solution(initial_state, best_solution)
+        return path, len(visited)
     return [], len(visited)
