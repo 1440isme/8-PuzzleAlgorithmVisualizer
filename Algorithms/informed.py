@@ -109,33 +109,3 @@ def ida_star(initial_state, goal_state):
             return [], len(visited)
         threshold = new_threshold
 
-def beam_search(initial_state, goal_state, beam_width=3):
-    queue = [(manhattan_distance(initial_state, goal_state), initial_state, [initial_state])]
-    visited = set([str(initial_state)])
-    
-    while queue:
-        # Lấy beam_width trạng thái tốt nhất từ queue
-        queue = sorted(queue, key=lambda x: x[0])[:beam_width]
-        next_queue = []
-        
-        for _, state, path in queue:
-            if state == goal_state:
-                return path, len(visited)
-            
-            blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
-            moves = [(-1, 0, 'UP'), (1, 0, 'DOWN'), (0, -1, 'LEFT'), (0, 1, 'RIGHT')]
-            
-            for di, dj, _ in moves:
-                new_i, new_j = blank_i + di, blank_j + dj
-                if 0 <= new_i < 3 and 0 <= new_j < 3:
-                    new_state = [list(row) for row in state]
-                    new_state[blank_i][blank_j], new_state[new_i][new_j] = new_state[new_i][new_j], new_state[blank_i][blank_j]
-                    new_state_tuple = tuple(tuple(row) for row in new_state)
-                    if str(new_state_tuple) not in visited:
-                        visited.add(str(new_state_tuple))
-                        h = manhattan_distance(new_state_tuple, goal_state)
-                        next_queue.append((h, new_state_tuple, path + [new_state_tuple]))
-        
-        queue = next_queue
-    
-    return [], len(visited)

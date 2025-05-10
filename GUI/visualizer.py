@@ -2,9 +2,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import copy
 from Algorithms.uninformed import bfs, dfs, ucs, ids, bfs_belief
-from Algorithms.informed import greedy_search, a_star, ida_star, beam_search
-from Algorithms.local_search import hill_climbing, simple_hill_climbing, stochastic_hill_climbing, simulated_annealing, trial_and_error_search
-from Algorithms.and_or_search import and_or_search
+from Algorithms.informed import greedy_search, a_star, ida_star
+from Algorithms.local_search import (hill_climbing, simple_hill_climbing, 
+                                   stochastic_hill_climbing, simulated_annealing,
+                                   trial_and_error_search, beam_search,
+                                   steepest_ascent_hill_climbing, genetic_algorithm)
+from Algorithms.complex import and_or_search
 from Algorithms.probabilistic_search import belief_state_search, physical_search
 from Algorithms.constraint import backtracking_with_steps, backtracking_with_ac3
 from Models.puzzle import is_solvable
@@ -83,13 +86,13 @@ class PuzzleVisualizer(tk.Tk):
         uninformed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         informed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         local_search_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
-        and_or_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
+        complex_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
         probabilistic_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         csp_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         algorithm_frame.add(uninformed_tab, text="Uninformed Search")
         algorithm_frame.add(informed_tab, text="Informed Search")
         algorithm_frame.add(local_search_tab, text="Local Search") 
-        algorithm_frame.add(and_or_tab, text="AND-OR Search")  
+        algorithm_frame.add(complex_tab, text="Complex Environment")  
         algorithm_frame.add(probabilistic_tab, text="Sensorless Search")
         algorithm_frame.add(csp_tab, text="Constraint Satisfaction")
         
@@ -127,9 +130,7 @@ class PuzzleVisualizer(tk.Tk):
                             lambda: self.set_algorithm("IDA*"))
         idastar_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
-        beamsearch_btn = self.create_button(informed_tab, "Beam Search",
-                                        lambda: self.set_algorithm("Beam Search"), width=12)
-        beamsearch_btn.pack(side=tk.LEFT, padx=5, pady=10)
+        
         
         # Local search algorithms
         hillclimbing_btn = self.create_button(local_search_tab, "Hill Climbing", 
@@ -144,16 +145,28 @@ class PuzzleVisualizer(tk.Tk):
                                      lambda: self.set_algorithm("Stochastic Hill"), width=12)
         stochastichill_btn.pack(side=tk.LEFT, padx=5, pady=10)
 
+        steepestascenthill_btn = self.create_button(local_search_tab, "Steepest Ascent Hill",
+                                     lambda: self.set_algorithm("Steepest Ascent Hill"), width=18)
+        steepestascenthill_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
         simualatedannealing_btn = self.create_button(local_search_tab, "Simulated Annealing",
                                         lambda: self.set_algorithm("Simulated Annealing"), width=18)
         simualatedannealing_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        genetic_btn = self.create_button(local_search_tab, "Genetic Algorithm",
+                                        lambda: self.set_algorithm("Genetic Algorithm"), width=18)
+        genetic_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        beamsearch_btn = self.create_button(local_search_tab, "Beam Search",
+                                        lambda: self.set_algorithm("Beam Search"), width=12)
+        beamsearch_btn.pack(side=tk.LEFT, padx=5, pady=10)
 
         trialanderror_btn = self.create_button(local_search_tab, "Trial and Error",
                                         lambda: self.set_algorithm("Trial and Error"), width=18)
         trialanderror_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # AND-OR search algorithm
-        andor_btn = self.create_button(and_or_tab, "AND-OR Search", 
+        andor_btn = self.create_button(complex_tab, "AND-OR Search", 
                                    lambda: self.set_algorithm("AND-OR Search"), width=14)
         andor_btn.pack(side=tk.LEFT, padx=5, pady=10)
 
@@ -490,10 +503,14 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = hill_climbing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Simple Hill":  
             self.solution_path, visited_count = simple_hill_climbing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
+        elif self.algorithm.get() == "Steepest Ascent Hill":
+            self.solution_path, visited_count = steepest_ascent_hill_climbing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Stochastic Hill":
             self.solution_path, visited_count = stochastic_hill_climbing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Simulated Annealing":
             self.solution_path, visited_count = simulated_annealing(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
+        elif self.algorithm.get() == "Genetic Algorithm":
+            self.solution_path, visited_count = genetic_algorithm(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Trial and Error":
             self.solution_path, visited_count = trial_and_error_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Beam Search":
