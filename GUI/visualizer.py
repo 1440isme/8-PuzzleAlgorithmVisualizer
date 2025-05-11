@@ -487,51 +487,76 @@ class PuzzleVisualizer(tk.Tk):
         self.current_step += 1
 
     def set_algorithm(self, algo):
+        # Lưu thuật toán cũ trước khi thay đổi
+        old_algo = self.algorithm.get()
+        
         self.algorithm.set(algo)
         self.algorithm_label.config(text=f"Algorithm: {algo}")
         self.log_text.insert(tk.END, f"Selected algorithm: {algo}\n")
         self.log_text.see(tk.END)
         self.status_label.config(text=f"Current algorithm: {algo}")
         
+        # Xóa nội dung ô nhập start state cho AC-3 và Backtracking
+        if algo in ["Backtracking CSP", "Backtracking - AC-3"]:
+            self.start_text.delete("1.0", tk.END)
+            # Clear puzzle về trạng thái trống
+            self.start_state = [[None, None, None], [None, None, None], [None, None, None]]
+            self.current_state = copy.deepcopy(self.start_state)
+            self.draw_puzzle(self.current_state)
+        # Reset goal state về dạng phổ biến khi chuyển từ thuật toán mù sang thuật toán khác
+        elif old_algo in ["Partially Observable", "No Observation"] and algo not in ["Partially Observable", "No Observation"]:
+            self.end_text.delete("1.0", tk.END)
+            self.end_text.insert("1.0", "1,2,3,4,5,6,7,8,0")
+        
     def solve_puzzle(self):
         # Kiểm tra xem state có thay đổi không
         self.check_state_changed()
         
-        start_str = self.start_text.get("1.0", tk.END).strip()
-        end_str = self.end_text.get("1.0", tk.END).strip()
-        
-        start_state = self.parse_state(start_str)
-        goal_state = self.parse_state(end_str)
-        
-        if not start_state or not goal_state:
-            return
+        # Bỏ qua việc kiểm tra đầu vào cho Backtracking CSP và Backtracking - AC-3
+        if self.algorithm.get() not in ["Backtracking CSP", "Backtracking - AC-3"]:
+            start_str = self.start_text.get("1.0", tk.END).strip()
+            end_str = self.end_text.get("1.0", tk.END).strip()
             
-        # Kiểm tra tính khả thi cho POMDP
-        if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
-            if not isinstance(start_state, list) or not isinstance(goal_state, list):
-                messagebox.showerror("Error", "For Partially Observable, please enter multiple states (one per line)")
+            start_state = self.parse_state(start_str)
+            goal_state = self.parse_state(end_str)
+            
+            if not start_state or not goal_state:
                 return
-            for state in start_state:
-                if not is_solvable(state):
-                    messagebox.showerror("Error", "One or more start states are not solvable!")
+                
+            # Kiểm tra tính khả thi cho POMDP
+            if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
+                if not isinstance(start_state, list) or not isinstance(goal_state, list):
+                    messagebox.showerror("Error", "For Partially Observable, please enter multiple states (one per line)")
                     return
-            for state in goal_state:
-                if not is_solvable(state):
-                    messagebox.showerror("Error", "One or more goal states are not solvable!")
+                for state in start_state:
+                    if not is_solvable(state):
+                        messagebox.showerror("Error", "One or more start states are not solvable!")
+                        return
+                for state in goal_state:
+                    if not is_solvable(state):
+                        messagebox.showerror("Error", "One or more goal states are not solvable!")
+                        return
+            else:
+                # Kiểm tra bình thường cho các thuật toán khác
+                if is_solvable(start_state) != is_solvable(goal_state):
+                    messagebox.showerror("Error", "Cannot solve from the start state to the goal state!")
                     return
+            
+            self.start_state = start_state
+            self.goal_state = goal_state
+            # Lấy trạng thái đầu tiên để hiển thị
+            if isinstance(start_state, list):
+                self.current_state = copy.deepcopy(start_state[0])
+            else:
+                self.current_state = copy.deepcopy(start_state)
         else:
-            # Kiểm tra bình thường cho các thuật toán khác
-            if is_solvable(start_state) != is_solvable(goal_state):
-                messagebox.showerror("Error", "Cannot solve from the start state to the goal state!")
+            # Không cần trạng thái ban đầu cho Backtracking CSP và Backtracking - AC-3
+            self.start_state = [[None, None, None], [None, None, None], [None, None, None]]
+            self.current_state = copy.deepcopy(self.start_state)
+            goal_str = self.end_text.get("1.0", tk.END).strip()
+            self.goal_state = self.parse_state(goal_str)
+            if not self.goal_state:
                 return
-        
-        self.start_state = start_state
-        self.goal_state = goal_state
-        # Lấy trạng thái đầu tiên để hiển thị
-        if isinstance(start_state, list):
-            self.current_state = copy.deepcopy(start_state[0])
-        else:
-            self.current_state = copy.deepcopy(start_state)
         
         self.log_text.delete(1.0, tk.END)
         self.log_text.insert(tk.END, f"Solving with {self.algorithm.get()}...\n")
@@ -641,6 +666,9 @@ class PuzzleVisualizer(tk.Tk):
                 self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
     
     def randomize_start_state(self):
+        if self.algorithm.get() == "Backtracking CSP" or self.algorithm.get() == "Backtracking - AC-3":
+            messagebox.showerror("Error", "Cannot randomize start state for Backtracking CSP and Backtracking - AC-3")
+            return
         import random
         
         if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":

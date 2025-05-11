@@ -10,13 +10,12 @@ def backtracking_with_steps(initial_state, goal_state):
         else:
             raise ValueError("State must be a 3x3 grid (list/tuple of lists/tuples) or a flat list/tuple with 9 elements")
 
-    # Chuyển initial_state và goal_state về dạng danh sách phẳng
-    initial_flat = flatten_state(initial_state)
+    # Chuyển goal_state về dạng danh sách phẳng
     goal_flat = flatten_state(goal_state)
 
     # Kiểm tra dữ liệu đầu vào
-    if set(initial_flat) != set(range(9)) or set(goal_flat) != set(range(9)):
-        raise ValueError("States must contain exactly the numbers 0 to 8")
+    if set(goal_flat) != set(range(9)):
+        raise ValueError("Goal state must contain exactly the numbers 0 to 8")
 
     # Chuyển goal state thành dạng bảng 3x3 để dễ kiểm tra
     goal = [[goal_flat[i * 3 + j] for j in range(3)] for i in range(3)]
@@ -61,19 +60,11 @@ def backtracking_with_steps(initial_state, goal_state):
         
         return False
 
-    # Chuyển initial_state thành danh sách để dễ xử lý
-    numbers = initial_flat[:]
+    # Danh sách các số cần điền (0-8)
+    numbers = list(range(9))
+    random.shuffle(numbers)  # Xáo trộn ngẫu nhiên các số
     # Gọi Backtracking từ ô đầu tiên (pos = 0)
-    success = False
-    # Thử từng số trong start state làm điểm bắt đầu (dịch vòng danh sách)
-    for start_idx in range(len(numbers)):
-        remaining_numbers = numbers[start_idx:] + numbers[:start_idx]
-        board = [[None for _ in range(3)] for _ in range(3)]
-        steps = []
-        visited_count = 0
-        if backtrack(0, remaining_numbers):
-            success = True
-            break
+    success = backtrack(0, numbers)
     
     if not success:
         return [], visited_count
@@ -141,7 +132,6 @@ def backtracking_with_ac3(initial_state, goal_state):
     Returns:
         (steps, visited_count, ac3_log): Các bước giải (danh sách các trạng thái), số trạng thái đã thăm, và log của AC-3.
     """
-    # Chuyển trạng thái thành dạng danh sách phẳng để kiểm tra
     def flatten_state(state):
         if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
             return [state[i][j] for i in range(3) for j in range(3)]
@@ -150,67 +140,41 @@ def backtracking_with_ac3(initial_state, goal_state):
         else:
             raise ValueError("State must be a 3x3 grid (list/tuple of lists/tuples) or a flat list/tuple with 9 elements")
 
-    initial_flat = flatten_state(initial_state)
+    # Chuyển goal_state về dạng danh sách phẳng
     goal_flat = flatten_state(goal_state)
 
     # Kiểm tra dữ liệu đầu vào
-    if set(initial_flat) != set(range(9)) or set(goal_flat) != set(range(9)):
-        raise ValueError("States must contain exactly the numbers 0 to 8")
+    if set(goal_flat) != set(range(9)):
+        raise ValueError("Goal state must contain exactly the numbers 0 to 8")
 
     # Biểu diễn bài toán dưới dạng CSP
-    # Biến: Mỗi ô là một biến, định dạng là tuple (i,j)
     variables = [(i, j) for i in range(3) for j in range(3)]
     
     # Miền giá trị: Ban đầu tất cả ô đều có thể nhận giá trị từ 0 đến 8
     domains = {(i, j): list(range(9)) for i, j in variables}
     
+    # Xáo trộn ngẫu nhiên miền giá trị của mỗi biến
+    for var in variables:
+        random.shuffle(domains[var])
+    
     # Ràng buộc
     constraints = {}
-    # Ràng buộc All-Different: Mỗi ô có giá trị khác nhau
+    
+    # 1. Ràng buộc All-Different
     for var1 in variables:
         for var2 in variables:
             if var1 != var2:
                 constraints[(var1, var2)] = lambda x, y: x != y
     
-    # Ràng buộc trạng thái ban đầu: X_{i,j} = initial_state[i][j]
+    # 2. Ràng buộc về vị trí của số 0 (ô trống) trong goal state
     for i in range(3):
         for j in range(3):
-            value = initial_state[i][j]
-            var = (i, j)
-            # Thêm ràng buộc X_{i,j} = value
-            for other_var in variables:
-                if other_var != var:
-                    # Nếu (var, other_var) đã có ràng buộc All-Different, kết hợp với ràng buộc X_{i,j} = value
-                    if (var, other_var) in constraints:
-                        old_constraint = constraints[(var, other_var)]
-                        constraints[(var, other_var)] = lambda x, y, v=value, oc=old_constraint: x == v and oc(x, y)
-                    else:
-                        constraints[(var, other_var)] = lambda x, y, v=value: x == v
-                    # Đảm bảo cung ngược lại cũng tồn tại
-                    if (other_var, var) in constraints:
-                        old_constraint = constraints[(other_var, var)]
-                        constraints[(other_var, var)] = lambda y, x, v=value, oc=old_constraint: x == v and oc(y, x)
-                    else:
-                        constraints[(other_var, var)] = lambda y, x, v=value: x == v
-    
-    # Ràng buộc trạng thái mục tiêu: X_{i,j} = goal_state[i][j]
-    for i in range(3):
-        for j in range(3):
-            value = goal_state[i][j]
-            var = (i, j)
-            # Thêm ràng buộc X_{i,j} = value
-            for other_var in variables:
-                if other_var != var:
-                    if (var, other_var) in constraints:
-                        old_constraint = constraints[(var, other_var)]
-                        constraints[(var, other_var)] = lambda x, y, v=value, oc=old_constraint: x == v and oc(x, y)
-                    else:
-                        constraints[(var, other_var)] = lambda x, y, v=value: x == v
-                    if (other_var, var) in constraints:
-                        old_constraint = constraints[(other_var, var)]
-                        constraints[(other_var, var)] = lambda y, x, v=value, oc=old_constraint: x == v and oc(y, x)
-                    else:
-                        constraints[(other_var, var)] = lambda y, x, v=value: x == v
+            if goal_state[i][j] == 0:
+                var = (i, j)
+                for other_var in variables:
+                    if other_var != var:
+                        constraints[(var, other_var)] = lambda x, y, v=0: x == v
+                        constraints[(other_var, var)] = lambda y, x, v=0: x == v
     
     # Tạo CSP
     csp = {
@@ -222,24 +186,27 @@ def backtracking_with_ac3(initial_state, goal_state):
     # Chạy AC-3 để thu hẹp miền giá trị
     consistent, domains, ac3_log = ac3(csp)
     if not consistent:
-        return [], 0, ac3_log  # Không thể giải, trả về danh sách bước rỗng
-    
+        return [], 0, ac3_log
+
     # Chuyển goal state thành dạng bảng 3x3 để kiểm tra
     goal = [[goal_flat[i * 3 + j] for j in range(3)] for i in range(3)]
-    # Bảng ban đầu là bảng trống
     board = [[None for _ in range(3)] for _ in range(3)]
-    # Danh sách các bước để hiển thị animation
     steps = []
-    # Đếm số trạng thái đã thăm
     visited_count = 0
+
+    def is_valid_assignment(pos, value):
+        i, j = divmod(pos, 3)
+        # Kiểm tra xem giá trị đã xuất hiện ở các ô trước đó chưa
+        for k in range(pos):
+            ki, kj = divmod(k, 3)
+            if board[ki][kj] == value:
+                return False
+        return True
 
     def backtrack(pos):
         nonlocal visited_count
-        # Tính vị trí ô hiện tại (i,j) từ chỉ số pos (0 đến 8)
         i, j = divmod(pos, 3)
-        var = (i, j)
         
-        # Nếu đã điền hết tất cả ô (pos = 9), kiểm tra xem có khớp goal state không
         if pos == 9:
             if all(board[i][j] == goal[i][j] for i in range(3) for j in range(3)):
                 steps.append([row[:] for row in board])
@@ -247,37 +214,25 @@ def backtracking_with_ac3(initial_state, goal_state):
             return False
         
         # Thử các giá trị trong miền đã thu hẹp
-        for value in domains[var]:
-            # Kiểm tra xem giá trị này có thỏa mãn ràng buộc với các ô đã điền không
-            valid = True
-            for k in range(3):
-                for l in range(3):
-                    if (k, l) != (i, j) and board[k][l] is not None:
-                        other_var = (k, l)
-                        if ((var, other_var) in constraints and not constraints[(var, other_var)](value, board[k][l])) or \
-                           ((other_var, var) in constraints and not constraints[(other_var, var)](board[k][l], value)):
-                            valid = False
-                            break
-                if not valid:
-                    break
-            if not valid:
+        for value in domains[(i, j)]:
+            if not is_valid_assignment(pos, value):
                 continue
-            
-            # Đặt số vào ô (i,j)
+                
             board[i][j] = value
             steps.append([row[:] for row in board])
             visited_count += 1
             
-            # Đệ quy để điền ô tiếp theo
             if backtrack(pos + 1):
                 return True
             
-            # Nếu không thành công, quay lui: bỏ số ra khỏi ô
             board[i][j] = None
             steps.append([row[:] for row in board])
         
         return False
 
+    # Danh sách các số cần điền (0-8)
+    numbers = list(range(9))
+    random.shuffle(numbers)  # Xáo trộn ngẫu nhiên các số
     # Gọi Backtracking từ ô đầu tiên (pos = 0)
     success = backtrack(0)
     
