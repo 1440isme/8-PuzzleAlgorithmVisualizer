@@ -16,7 +16,7 @@ class PuzzleVisualizer(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("8-Puzzle Algorithm Visualizer")
-        self.geometry("1200x800")
+        self.geometry("1200x1200")
         self.configure(bg="#f0f0f0")  # Light gray background
         
         # Center the window on the screen
@@ -44,6 +44,10 @@ class PuzzleVisualizer(tk.Tk):
         self.current_step = 0
         self.after_ids = []  # For tracking animation "after" events
         
+        # Thêm biến để lưu trạng thái hiện tại của start và goal
+        self.current_start_str = "1,2,3,4,0,5,6,7,8"
+        self.current_goal_str = "1,2,3,4,5,6,7,8,0"
+        
         self.create_widgets()
         
     def center_window(self):
@@ -54,7 +58,7 @@ class PuzzleVisualizer(tk.Tk):
         
         # Calculate position coordinates
         width = 1200
-        height = 800
+        height = 880
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         
@@ -100,7 +104,6 @@ class PuzzleVisualizer(tk.Tk):
                             lambda: self.set_algorithm("BFS"))
         bfs_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
-
         dfs_btn = self.create_button(uninformed_tab, "DFS",
                             lambda: self.set_algorithm("DFS"))
         dfs_btn.pack(side=tk.LEFT, padx=5, pady=10)
@@ -125,8 +128,6 @@ class PuzzleVisualizer(tk.Tk):
         idastar_btn = self.create_button(informed_tab, "IDA*",
                             lambda: self.set_algorithm("IDA*"))
         idastar_btn.pack(side=tk.LEFT, padx=5, pady=10)
-        
-        
         
         # Local search algorithms
         hillclimbing_btn = self.create_button(local_search_tab, "Hill Climbing", 
@@ -156,8 +157,6 @@ class PuzzleVisualizer(tk.Tk):
         beamsearch_btn = self.create_button(local_search_tab, "Beam Search",
                                         lambda: self.set_algorithm("Beam Search"), width=12)
         beamsearch_btn.pack(side=tk.LEFT, padx=5, pady=10)
-
-        
         
         # AND-OR search algorithm
         andor_btn = self.create_button(complex_tab, "AND-OR Search", 
@@ -191,15 +190,18 @@ class PuzzleVisualizer(tk.Tk):
                                lambda: self.set_algorithm("Q-Learning"), width=15)
         q_learning_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
-        
         # Main content with card-like design
         main_frame = tk.Frame(self, bg=self.colors["bg"])
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # Tạo frame chính cho 3 khung
+        top_frame = tk.Frame(main_frame, bg=self.colors["bg"])
+        top_frame.pack(fill=tk.X, pady=(0, 5))
         
         # Input panel with rounded corners
-        input_frame = tk.Frame(main_frame, width=200, bg=self.colors["frame_bg"],
+        input_frame = tk.Frame(top_frame, width=200, bg=self.colors["frame_bg"],
                               highlightbackground="#cccccc", highlightthickness=1)
-        input_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=5)
+        input_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 5))
         
         # Title for the input panel
         tk.Label(input_frame, text="Configuration", font=("Segoe UI", 12, "bold"),
@@ -298,24 +300,10 @@ class PuzzleVisualizer(tk.Tk):
                                       fg=self.colors["label_fg"], bg=self.colors["frame_bg"])
         self.algorithm_label.pack(anchor=tk.W)
         
-        # Tạo content_frame để chứa puzzle và data_frame cạnh nhau
-        content_frame = tk.Frame(main_frame, bg=self.colors["bg"])
-        content_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Configure content_frame with appropriate spacing
-        content_frame.grid_columnconfigure(0, weight=1)  # Left spacing
-        content_frame.grid_columnconfigure(1, weight=0)  # Puzzle doesn't expand horizontally
-        content_frame.grid_columnconfigure(2, weight=0)  # Data frame doesn't expand horizontally
-        content_frame.grid_columnconfigure(3, weight=1)  # Right spacing
-        content_frame.grid_rowconfigure(0, weight=1)     # Allow vertical expansion
-        
-        # Empty frame for left spacing
-        tk.Frame(content_frame, bg=self.colors["bg"]).grid(row=0, column=0, sticky="nsew")
-        
-        # Phần puzzle - placed in center column with card design
-        puzzle_frame = tk.Frame(content_frame, bg=self.colors["frame_bg"], 
+        # Phần puzzle - placed in center with card design
+        puzzle_frame = tk.Frame(top_frame, bg=self.colors["frame_bg"], 
                               highlightbackground="#cccccc", highlightthickness=1)
-        puzzle_frame.grid(row=0, column=1, sticky="ns", padx=10)
+        puzzle_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
         
         # Title for puzzle area
         tk.Label(puzzle_frame, text="8-Puzzle Board", font=("Segoe UI", 12, "bold"),
@@ -326,10 +314,9 @@ class PuzzleVisualizer(tk.Tk):
         self.canvas.pack(padx=20, pady=20)
         
         # Phần DataStructure - with card design
-        data_frame = tk.Frame(content_frame, width=350, bg=self.colors["frame_bg"],
+        data_frame = tk.Frame(top_frame, width=350, bg=self.colors["frame_bg"],
                             highlightbackground="#cccccc", highlightthickness=1)
-        data_frame.grid(row=0, column=2, sticky="ns", padx=10)
-        data_frame.grid_propagate(False)  # Prevent frame from shrinking to fit contents
+        data_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
         
         # Configure data_frame for proper layout
         data_frame.columnconfigure(0, weight=1)
@@ -354,30 +341,64 @@ class PuzzleVisualizer(tk.Tk):
         data_scrollbar.grid(row=0, column=1, sticky="ns")
         self.data_text.configure(yscrollcommand=data_scrollbar.set)
         
-        # Empty frame for right spacing
-        tk.Frame(content_frame, bg=self.colors["bg"]).grid(row=0, column=3, sticky="nsew")
+        # Tạo frame cho phần dưới (log và comparison)
+        bottom_frame = tk.Frame(self, bg=self.colors["bg"])
+        bottom_frame.pack(fill=tk.X, pady=5, padx=10)
         
-        # Tạo log_frame nằm dưới tất cả with card design
-        log_frame = tk.Frame(self, bg=self.colors["frame_bg"],
+        # Tạo log_frame với card design
+        log_frame = tk.Frame(bottom_frame, bg=self.colors["frame_bg"],
                            highlightbackground="#cccccc", highlightthickness=1)
-        log_frame.pack(fill=tk.X, pady=10, padx=10)
+        log_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
         
         tk.Label(log_frame, text="Execution Log", font=("Segoe UI", 10, "bold"),
                 fg=self.colors["label_fg"], bg=self.colors["frame_bg"]).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
         log_text_frame = tk.Frame(log_frame, bg=self.colors["frame_bg"])
-        log_text_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+        log_text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         log_text_frame.columnconfigure(0, weight=1)
+        log_text_frame.rowconfigure(0, weight=1)
         
-        self.log_text = tk.Text(log_text_frame, height=6, width=50, font=("Consolas", 9),
+        self.log_text = tk.Text(log_text_frame, height=8, width=50, font=("Consolas", 9),
                               bg="#fafafa", relief=tk.FLAT,
                               highlightbackground="#cccccc", highlightthickness=1)
-        self.log_text.pack(fill=tk.X, side=tk.LEFT, expand=True)
+        self.log_text.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
         
         # Add scrollbar to log text
         log_scrollbar = ttk.Scrollbar(log_text_frame, orient="vertical", command=self.log_text.yview)
         log_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.log_text.configure(yscrollcommand=log_scrollbar.set)
+        
+        # Tạo comparison_frame với card design
+        comparison_frame = tk.Frame(bottom_frame, bg=self.colors["frame_bg"],
+                                  highlightbackground="#cccccc", highlightthickness=1)
+        comparison_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        
+        tk.Label(comparison_frame, text="Algorithm Comparison", font=("Segoe UI", 10, "bold"),
+                fg=self.colors["label_fg"], bg=self.colors["frame_bg"]).pack(anchor=tk.W, padx=10, pady=(10, 5))
+        
+        # Tạo Treeview cho bảng so sánh
+        self.comparison_tree = ttk.Treeview(comparison_frame, columns=("Algorithm", "Time", "States"),
+                                          show="headings", height=8)
+        self.comparison_tree.heading("Algorithm", text="Algorithm Name", 
+                                   command=lambda: self.sort_comparison("Algorithm"))
+        self.comparison_tree.heading("Time", text="Time (s)", 
+                                   command=lambda: self.sort_comparison("Time"))
+        self.comparison_tree.heading("States", text="States Explored", 
+                                   command=lambda: self.sort_comparison("States"))
+        
+        # Đặt độ rộng cột và căn giữa
+        self.comparison_tree.column("Algorithm", width=150, anchor="center")
+        self.comparison_tree.column("Time", width=100, anchor="center")
+        self.comparison_tree.column("States", width=150, anchor="center")
+        
+        # Thêm thanh cuộn
+        comparison_scrollbar = ttk.Scrollbar(comparison_frame, orient="vertical", 
+                                           command=self.comparison_tree.yview)
+        self.comparison_tree.configure(yscrollcommand=comparison_scrollbar.set)
+        
+        # Đóng gói Treeview và thanh cuộn
+        self.comparison_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        comparison_scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(0, 10))
         
         # Status bar at the very bottom
         status_frame = tk.Frame(self, bg="#e0e0e0", height=20)
@@ -411,6 +432,8 @@ class PuzzleVisualizer(tk.Tk):
         self.solution_path = None
         self.current_step = 0
         self.log_text.insert(tk.END, "Puzzle reset to initial state.\n")
+        self.clear_comparison()
+        self.current_start_str = self.start_text.get("1.0", tk.END).strip()
 
     def step_solution(self):
         if not self.solution_path:
@@ -471,6 +494,9 @@ class PuzzleVisualizer(tk.Tk):
         self.status_label.config(text=f"Current algorithm: {algo}")
         
     def solve_puzzle(self):
+        # Kiểm tra xem state có thay đổi không
+        self.check_state_changed()
+        
         start_str = self.start_text.get("1.0", tk.END).strip()
         end_str = self.end_text.get("1.0", tk.END).strip()
         
@@ -545,9 +571,6 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = genetic_algorithm(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Trial and Error":
             self.solution_path, visited_count = trial_and_error(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
-            self.log_text.delete(1.0, tk.END)
-            self.log_text.insert(tk.END, f"Visited states: {visited_count}\n")
-            self.log_text.insert(tk.END, f"Path length: {len(self.solution_path)}\n")
         elif self.algorithm.get() == "Beam Search":
             self.solution_path, visited_count = beam_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "AND-OR Search":
@@ -569,6 +592,7 @@ class PuzzleVisualizer(tk.Tk):
             self.log_text.insert(tk.END, f"Path length: {len(self.solution_path)}\n")
         elif self.algorithm.get() == "Q-Learning":
             self.solution_path, visited_count = q_learning(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
+            
         end_time = time.time()
         runtime = end_time - start_time
         
@@ -580,6 +604,8 @@ class PuzzleVisualizer(tk.Tk):
                 self.log_text.insert(tk.END, f"Number of steps: {steps}\n")
                 self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
                 self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
+                # Thêm kết quả vào bảng so sánh
+                self.add_to_comparison(self.algorithm.get(), runtime, visited_count)
                 self.animate_solution()
             else:
                 self.log_text.insert(tk.END, "No solution found!\n")
@@ -602,6 +628,8 @@ class PuzzleVisualizer(tk.Tk):
                     self.log_text.insert(tk.END, f"Number of steps: {steps}\n")
                     self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
                     self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
+                    # Thêm kết quả vào bảng so sánh
+                    self.add_to_comparison(self.algorithm.get(), runtime, visited_count)
                     self.animate_solution()
                 else:
                     self.log_text.insert(tk.END, "No solution found!\n")
@@ -717,7 +745,12 @@ class PuzzleVisualizer(tk.Tk):
             self.current_state = copy.deepcopy(self.start_state)
             self.draw_puzzle(self.current_state)
             self.log_text.insert(tk.END, f"Random start state generated: {','.join(map(str, start_state))}\n")
-    
+        
+        # Xóa bảng so sánh
+        self.clear_comparison()
+        # Cập nhật current_start_str
+        self.current_start_str = self.start_text.get("1.0", tk.END).strip()
+
     def parse_state(self, state_str):
         try:
             # Xử lý nhiều dòng cho belief states
@@ -934,3 +967,44 @@ class PuzzleVisualizer(tk.Tk):
                         fill="#eeeeee", outline="#666666", 
                         width=1
                     )
+
+    def clear_comparison(self):
+        """Xóa tất cả các mục trong bảng so sánh"""
+        for item in self.comparison_tree.get_children():
+            self.comparison_tree.delete(item)
+
+    def add_to_comparison(self, algorithm, time_taken, states_explored):
+        """Thêm kết quả vào bảng so sánh"""
+        self.comparison_tree.insert("", "end", values=(algorithm, f"{time_taken:.4f}", states_explored))
+
+    def check_state_changed(self):
+        """Kiểm tra xem start hoặc goal state có thay đổi không"""
+        current_start = self.start_text.get("1.0", tk.END).strip()
+        current_goal = self.end_text.get("1.0", tk.END).strip()
+        
+        if current_start != self.current_start_str or current_goal != self.current_goal_str:
+            self.current_start_str = current_start
+            self.current_goal_str = current_goal
+            self.clear_comparison()
+            return True
+        return False
+
+    def sort_comparison(self, column):
+        """Sắp xếp bảng so sánh theo cột được chọn"""
+        # Lấy tất cả các mục
+        items = [(self.comparison_tree.set(item, column), item) for item in self.comparison_tree.get_children("")]
+        
+        # Sắp xếp dựa trên loại dữ liệu
+        if column == "Time":
+            # Sắp xếp số thực
+            items.sort(key=lambda x: float(x[0]))
+        elif column == "States":
+            # Sắp xếp số nguyên
+            items.sort(key=lambda x: int(x[0]))
+        else:
+            # Sắp xếp chuỗi
+            items.sort()
+        
+        # Sắp xếp lại các mục
+        for index, (_, item) in enumerate(items):
+            self.comparison_tree.move(item, "", index)
