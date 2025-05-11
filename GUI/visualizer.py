@@ -764,7 +764,7 @@ class PuzzleVisualizer(tk.Tk):
                 if isinstance(states, (list, tuple)):
                     if len(states) == 9:  # Nếu là list phẳng
                         state = [list(states[i:i+3]) for i in range(0, 9, 3)]
-                    elif len(states) == 3 and all(len(row) == 3 for row in states):  # Nếu đã là ma trận 3x3
+                    elif isinstance(states[0], (list, tuple)) and len(states) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in states):  # Nếu đã là ma trận 3x3
                         state = [list(row) for row in states]
                     else:  # Nếu là danh sách các trạng thái
                         state = [list(row) for row in states[0]]  # Lấy trạng thái đầu tiên để hiển thị
@@ -802,7 +802,7 @@ class PuzzleVisualizer(tk.Tk):
                         if isinstance(states, (list, tuple)):
                             if len(states) == 9:  # Nếu là list phẳng
                                 state = [list(states[j:j+3]) for j in range(0, 9, 3)]
-                            elif len(states) == 3 and all(len(row) == 3 for row in states):  # Nếu đã là ma trận 3x3
+                            elif isinstance(states[0], (list, tuple)) and len(states) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in states):  # Nếu đã là ma trận 3x3
                                 state = [list(row) for row in states]
                             else:
                                 state = [list(row) for row in states[0]]
@@ -875,7 +875,7 @@ class PuzzleVisualizer(tk.Tk):
         if isinstance(state, (list, tuple)):
             if len(state) == 9:  # Nếu là list phẳng
                 state = [state[i:i+3] for i in range(0, 9, 3)]
-            elif len(state) == 3 and all(len(row) == 3 for row in state):  # Nếu đã là ma trận 3x3
+            elif isinstance(state[0], (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):  # Nếu đã là ma trận 3x3
                 state = state
             else:  # Nếu không phải định dạng hợp lệ
                 return
