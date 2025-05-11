@@ -1,3 +1,4 @@
+import random
 # Hàm backtracking_with_steps (giữ nguyên từ trước)
 def backtracking_with_steps(initial_state, goal_state):
     # Hàm chuyển đổi từ dạng 3x3 (tuple/danh sách) sang danh sách phẳng
@@ -285,3 +286,94 @@ def backtracking_with_ac3(initial_state, goal_state):
         return [], visited_count, ac3_log
     
     return steps, visited_count, ac3_log
+
+def trial_and_error(initial_state, goal_state):
+    """
+    Hàm Trial and Error để giải bài toán 8-Puzzle bằng cách thử nghiệm ngẫu nhiên các nước đi.
+    Args:
+        initial_state: Trạng thái ban đầu (danh sách 3x3).
+        goal_state: Trạng thái mục tiêu (danh sách 3x3).
+    Returns:
+        (steps, visited_count): Các bước giải (danh sách các trạng thái), số trạng thái đã thăm, và log rỗng.
+    """
+    # Chuyển trạng thái thành dạng danh sách phẳng để kiểm tra
+    def flatten_state(state):
+        if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
+            return [state[i][j] for i in range(3) for j in range(3)]
+        elif isinstance(state, (list, tuple)) and len(state) == 9:
+            return list(state)
+        else:
+            raise ValueError("State must be a 3x3 grid (list/tuple of lists/tuples) or a flat list/tuple with 9 elements")
+
+    initial_flat = flatten_state(initial_state)
+    goal_flat = flatten_state(goal_state)
+
+    # Kiểm tra dữ liệu đầu vào
+    if set(initial_flat) != set(range(9)) or set(goal_flat) != set(range(9)):
+        raise ValueError("States must contain exactly the numbers 0 to 8")
+
+    # Chuyển goal state thành dạng bảng 3x3 để dễ kiểm tra
+    goal = [[goal_flat[i * 3 + j] for j in range(3)] for i in range(3)]
+    # Danh sách các bước để hiển thị animation
+    steps = [initial_state]
+    # Đếm số trạng thái đã thăm
+    visited_count = 0
+    # Tập các trạng thái đã thăm
+    visited = {tuple(tuple(row) for row in initial_state)}
+
+    # Hàm lấy các trạng thái lân cận
+    def get_neighbors(state):
+        neighbors = []
+        moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+        blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
+        for di, dj in moves:
+            new_i, new_j = blank_i + di, blank_j + dj
+            if 0 <= new_i < 3 and 0 <= new_j < 3:
+                new_state = [list(row) for row in state]
+                new_state[blank_i][blank_j], new_state[new_i][new_j] = new_state[new_i][new_j], new_state[blank_i][blank_j]
+                neighbors.append([row[:] for row in new_state])
+        return neighbors
+
+    # Hàm tính khoảng cách Manhattan (dùng để ưu tiên nước đi tốt hơn một chút)
+    def manhattan_distance(state, goal_state):
+        distance = 0
+        goal_positions = {(goal_state[i][j], (i, j)) for i in range(3) for j in range(3)}
+        goal_dict = dict(goal_positions)
+        for i in range(3):
+            for j in range(3):
+                if state[i][j] != 0:
+                    goal_i, goal_j = goal_dict[state[i][j]]
+                    distance += abs(i - goal_i) + abs(j - goal_j)
+        return distance
+
+    # Danh sách để lưu các trạng thái cần thử
+    queue = [initial_state]
+    max_attempts = 10000  # Tăng giới hạn để thử nhiều hơn
+    attempt = 0
+
+    while queue and attempt < max_attempts:
+        current_state = queue.pop(0)
+        visited_count += 1
+
+        if all(current_state[i][j] == goal[i][j] for i in range(3) for j in range(3)):
+            steps.append(current_state)
+            return steps, visited_count
+
+        neighbors = get_neighbors(current_state)
+        # Lọc các trạng thái lân cận chưa thăm
+        unvisited_neighbors = [n for n in neighbors if tuple(tuple(row) for row in n) not in visited]
+        if unvisited_neighbors:
+            # Sắp xếp các trạng thái lân cận theo khoảng cách Manhattan (ưu tiên trạng thái tốt hơn)
+            scored_neighbors = [(manhattan_distance(n, goal), n) for n in unvisited_neighbors]
+            scored_neighbors.sort(key=lambda x: x[0])
+            # Chọn ngẫu nhiên một trong số các trạng thái tốt nhất (để giữ tính ngẫu nhiên)
+            best_score = scored_neighbors[0][0]
+            best_neighbors = [n for score, n in scored_neighbors if score == best_score]
+            next_state = random.choice(best_neighbors)
+            queue.append(next_state)
+            steps.append(next_state)
+            visited.add(tuple(tuple(row) for row in next_state))
+        
+        attempt += 1
+
+    return [], visited_count

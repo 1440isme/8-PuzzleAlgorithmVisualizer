@@ -24,45 +24,6 @@ def bfs(initial_state, goal_state):
                     visited.add(str(new_state_tuple))
     return [], len(visited)  # Đã đúng: trả về [] nếu không tìm thấy goal_state
 
-def bfs_belief(initial_belief, goal_state):
-    # initial_belief: dict {state_tuple: probability}
-    queue = deque([(initial_belief, [])])
-    visited = set([str(tuple(sorted(initial_belief.keys())))])
-    
-    while queue:
-        belief, path = queue.popleft()
-        # Kiểm tra nếu tất cả trạng thái trong belief đều là goal_state
-        if all(state == tuple(tuple(row) for row in goal_state) for state in belief):
-            return path + [belief], len(visited)
-        
-        # Các hành động: lên, xuống, trái, phải
-        moves = [(-1, 0, 'UP'), (1, 0, 'DOWN'), (0, -1, 'LEFT'), (0, 1, 'RIGHT')]
-        
-        for di, dj, move_name in moves:
-            new_belief = {}
-            valid_move = True
-            # Áp dụng hành động cho từng trạng thái trong belief
-            for state in belief:
-                state_list = [[state[i][j] for j in range(3)] for i in range(3)]
-                blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state_list[i][j] == 0][0]
-                new_i, new_j = blank_i + di, blank_j + dj
-                # Kiểm tra hành động hợp lệ: trong lưới và không vào hàng 1
-                if 0 <= new_i < 3 and 0 <= new_j < 3 and new_i >= 1:
-                    new_state = [list(row) for row in state_list]
-                    new_state[blank_i][blank_j], new_state[new_i][new_j] = new_state[new_i][new_j], new_state[blank_i][blank_j]
-                    new_state_tuple = tuple(tuple(row) for row in new_state)
-                    new_belief[new_state_tuple] = belief[state]
-                else:
-                    valid_move = False
-                    break
-            
-            if valid_move and new_belief:
-                belief_key = str(tuple(sorted(new_belief.keys())))
-                if belief_key not in visited:
-                    queue.append((new_belief, path + [belief]))
-                    visited.add(belief_key)
-    
-    return [], len(visited)
 
 def dfs(initial_state, goal_state, max_depth=30):
     def dfs_recursive(state, path, visited, depth):

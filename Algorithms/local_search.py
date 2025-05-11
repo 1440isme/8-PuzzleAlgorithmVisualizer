@@ -200,35 +200,6 @@ def simulated_annealing(initial_state, goal_state, initial_temperature=1000, coo
     
     return path, len(visited)
 
-def trial_and_error_search(initial_state, goal_state, max_attempts=10000):
-    current_state = initial_state
-    path = [current_state]
-    visited = set([str(current_state)])
-    
-    for _ in range(max_attempts):
-        if current_state == goal_state:
-            return path, len(visited)
-        
-        # Tìm vị trí ô trống
-        blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if current_state[i][j] == 0][0]
-        moves = [(-1, 0, 'UP'), (1, 0, 'DOWN'), (0, -1, 'LEFT'), (0, 1, 'RIGHT')]
-        
-        # Chọn ngẫu nhiên một hướng di chuyển
-        di, dj, _ = random.choice(moves)
-        new_i, new_j = blank_i + di, blank_j + dj
-        
-        if 0 <= new_i < 3 and 0 <= new_j < 3:
-            new_state = [list(row) for row in current_state]
-            new_state[blank_i][blank_j], new_state[new_i][new_j] = new_state[new_i][new_j], new_state[blank_i][blank_j]
-            new_state_tuple = tuple(tuple(row) for row in new_state)
-            
-            if str(new_state_tuple) not in visited:
-                visited.add(str(new_state_tuple))
-                current_state = new_state_tuple
-                path.append(current_state)
-    
-    return path, len(visited)
-
 def steepest_ascent_hill_climbing(initial_state, goal_state):
     # Chuyển đổi initial_state thành list nếu là tuple
     current_state = [list(row) for row in initial_state] if isinstance(initial_state, tuple) else initial_state

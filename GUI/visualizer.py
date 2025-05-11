@@ -1,15 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import copy
-from Algorithms.uninformed import bfs, dfs, ucs, ids, bfs_belief
+from Algorithms.uninformed import bfs, dfs, ucs, ids
 from Algorithms.informed import greedy_search, a_star, ida_star
 from Algorithms.local_search import (hill_climbing, simple_hill_climbing, 
                                    stochastic_hill_climbing, simulated_annealing,
-                                   trial_and_error_search, beam_search,
-                                   steepest_ascent_hill_climbing, genetic_algorithm)
+                                   beam_search, steepest_ascent_hill_climbing, genetic_algorithm)
 from Algorithms.complex import and_or_search, pomdp_solve, no_observation_solve
-from Algorithms.probabilistic_search import belief_state_search, physical_search
-from Algorithms.constraint import backtracking_with_steps, backtracking_with_ac3
+from Algorithms.constraint import backtracking_with_steps, backtracking_with_ac3, trial_and_error
+from Algorithms.reforcement_learning import q_learning
 from Models.puzzle import is_solvable
 import time
 
@@ -87,23 +86,20 @@ class PuzzleVisualizer(tk.Tk):
         informed_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         local_search_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
         complex_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])  
-        probabilistic_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         csp_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
+        reinforcement_tab = tk.Frame(algorithm_frame, bg=self.colors["frame_bg"])
         algorithm_frame.add(uninformed_tab, text="Uninformed Search")
         algorithm_frame.add(informed_tab, text="Informed Search")
         algorithm_frame.add(local_search_tab, text="Local Search") 
         algorithm_frame.add(complex_tab, text="Complex Environment")  
-        algorithm_frame.add(probabilistic_tab, text="Sensorless Search")
         algorithm_frame.add(csp_tab, text="Constraint Satisfaction")
-        
+        algorithm_frame.add(reinforcement_tab, text="Reinforcement Learning")
+
         # Uninformed search algorithms
         bfs_btn = self.create_button(uninformed_tab, "BFS", 
                             lambda: self.set_algorithm("BFS"))
         bfs_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
-        bfs_belief_btn = self.create_button(uninformed_tab, "BFS Belief",
-                            lambda: self.set_algorithm("BFS Belief"))        
-        bfs_belief_btn.pack(side=tk.LEFT, padx=5, pady=10)
 
         dfs_btn = self.create_button(uninformed_tab, "DFS",
                             lambda: self.set_algorithm("DFS"))
@@ -161,9 +157,7 @@ class PuzzleVisualizer(tk.Tk):
                                         lambda: self.set_algorithm("Beam Search"), width=12)
         beamsearch_btn.pack(side=tk.LEFT, padx=5, pady=10)
 
-        trialanderror_btn = self.create_button(local_search_tab, "Trial and Error",
-                                        lambda: self.set_algorithm("Trial and Error"), width=18)
-        trialanderror_btn.pack(side=tk.LEFT, padx=5, pady=10)
+        
         
         # AND-OR search algorithm
         andor_btn = self.create_button(complex_tab, "AND-OR Search", 
@@ -178,14 +172,6 @@ class PuzzleVisualizer(tk.Tk):
         no_observation_btn = self.create_button(complex_tab, "No Observation", 
                                    lambda: self.set_algorithm("No Observation"), width=18)
         no_observation_btn.pack(side=tk.LEFT, padx=5, pady=10)
-
-        belief_btn = self.create_button(probabilistic_tab, "Belief State Search",
-                                    lambda: self.set_algorithm("Belief State Search"), width=18)
-        belief_btn.pack(side=tk.LEFT, padx=5, pady=10)
-
-        physical_btn = self.create_button(probabilistic_tab, "Physical Search",
-                                    lambda: self.set_algorithm("Physical Search"), width=18)
-        physical_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         # Constraint Satisfaction algorithms
         backtracking_csp_btn = self.create_button(csp_tab, "Backtracking CSP", 
@@ -195,7 +181,15 @@ class PuzzleVisualizer(tk.Tk):
         backtracking_ac3_btn = self.create_button(csp_tab, "Backtracking - AC-3", 
                                lambda: self.set_algorithm("Backtracking - AC-3"), width=15)
         backtracking_ac3_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        trialanderror_btn = self.create_button(csp_tab, "Trial and Error",
+                                        lambda: self.set_algorithm("Trial and Error"), width=18)
+        trialanderror_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
+        # Reinforcement Learning algorithms
+        q_learning_btn = self.create_button(reinforcement_tab, "Q-Learning",
+                               lambda: self.set_algorithm("Q-Learning"), width=15)
+        q_learning_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
         
         # Main content with card-like design
@@ -435,7 +429,7 @@ class PuzzleVisualizer(tk.Tk):
         self.current_state = state
         self.draw_puzzle(state)
         
-        if self.algorithm.get() in ["Backtracking CSP", "Backtracking - AC-3"]:
+        if self.algorithm.get() in ["Backtracking CSP", "Backtracking - AC-3", "Trial and Error"]:
             # Với Backtracking, hiển thị số được đặt hoặc bỏ đi
             if self.current_step > 0:
                 prev_state = self.solution_path[self.current_step-1]
@@ -525,15 +519,12 @@ class PuzzleVisualizer(tk.Tk):
             self.solution_path, visited_count = no_observation_solve(start_state, goal_state)
         elif self.algorithm.get() == "BFS":
             self.solution_path, visited_count = bfs(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
-        elif self.algorithm.get() == "BFS Belief":
-            self.solution_path, visited_count = bfs_belief(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "DFS":
             self.solution_path, visited_count = dfs(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "UCS":
             self.solution_path, visited_count = ucs(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "IDS":
             self.solution_path, visited_count = ids(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
-        
         elif self.algorithm.get() == "Greedy":
             self.solution_path, visited_count = greedy_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "A*":
@@ -553,15 +544,14 @@ class PuzzleVisualizer(tk.Tk):
         elif self.algorithm.get() == "Genetic Algorithm":
             self.solution_path, visited_count = genetic_algorithm(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Trial and Error":
-            self.solution_path, visited_count = trial_and_error_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
+            self.solution_path, visited_count = trial_and_error(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
+            self.log_text.delete(1.0, tk.END)
+            self.log_text.insert(tk.END, f"Visited states: {visited_count}\n")
+            self.log_text.insert(tk.END, f"Path length: {len(self.solution_path)}\n")
         elif self.algorithm.get() == "Beam Search":
             self.solution_path, visited_count = beam_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "AND-OR Search":
             self.solution_path, visited_count = and_or_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
-        elif self.algorithm.get() == "Belief State Search":
-            self.solution_path, visited_count = belief_state_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
-        elif self.algorithm.get() == "Physical Search":
-            self.solution_path, visited_count = physical_search(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "Backtracking CSP":
             self.solution_path, visited_count = backtracking_with_steps(self.start_state, self.goal_state)
             self.log_text.delete(1.0, tk.END)
@@ -577,7 +567,8 @@ class PuzzleVisualizer(tk.Tk):
                     self.log_text.insert(tk.END, f"{log_entry}\n")
             self.log_text.insert(tk.END, f"Visited states: {visited_count}\n")
             self.log_text.insert(tk.END, f"Path length: {len(self.solution_path)}\n")
-        
+        elif self.algorithm.get() == "Q-Learning":
+            self.solution_path, visited_count = q_learning(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         end_time = time.time()
         runtime = end_time - start_time
         
