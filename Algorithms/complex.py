@@ -209,4 +209,109 @@ def pomdp_solve(initial_belief_states, goal_belief_states, max_iterations=100, t
             path.append([[list(row) for row in next_state]])
         return path, len(plan)
     
+    return [], visited_count
+
+def no_observation_solve(initial_belief_states, goal_belief_states, max_iterations=1000, time_limit=10):
+    """
+    Sensorless (no observation) 8-puzzle: tìm chuỗi hành động sao cho từ bất kỳ trạng thái nào trong tập khởi tạo, agent cũng đến được goal.
+    Giải bằng A* trên không gian belief state (tập hợp các trạng thái vật lý).
+    """
+    import time
+    import heapq
+    from collections import deque
+
+    class NoObsEightPuzzleProblem:
+        def __init__(self, initial_beliefs, goal_states):
+            self.initial_belief = set(tuple(tuple(row) for row in s) for s in initial_beliefs)
+            self.goal_states = set(tuple(tuple(row) for row in s) for s in goal_states)
+            self.actions = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+
+        def goal_test(self, belief):
+            # Đúng khi belief state chỉ chứa và đủ các trạng thái goal (không thừa, không thiếu)
+            return set(belief) == self.goal_states
+
+        def get_possible_actions(self, belief):
+            # Hợp các action hợp lệ từ tất cả các trạng thái trong belief
+            possible_actions = set()
+            for state in belief:
+                blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
+                for action in self.actions:
+                    di, dj = {'UP': (-1, 0), 'DOWN': (1, 0), 'LEFT': (0, -1), 'RIGHT': (0, 1)}[action]
+                    new_i, new_j = blank_i + di, blank_j + dj
+                    if 0 <= new_i < 3 and 0 <= new_j < 3:
+                        possible_actions.add(action)
+            return list(possible_actions)
+
+        def transition(self, belief, action):
+            # Áp dụng action cho tất cả các trạng thái trong belief
+            next_belief = set()
+            for state in belief:
+                blank_i, blank_j = [(i, j) for i in range(3) for j in range(3) if state[i][j] == 0][0]
+                di, dj = {'UP': (-1, 0), 'DOWN': (1, 0), 'LEFT': (0, -1), 'RIGHT': (0, 1)}[action]
+                new_i, new_j = blank_i + di, blank_j + dj
+                if 0 <= new_i < 3 and 0 <= new_j < 3:
+                    new_state = [list(row) for row in state]
+                    new_state[blank_i][blank_j], new_state[new_i][new_j] = new_state[new_i][new_j], new_state[blank_i][blank_j]
+                    next_belief.add(tuple(tuple(row) for row in new_state))
+                else:
+                    next_belief.add(state)  # Nếu không di chuyển được thì giữ nguyên
+            return next_belief
+
+        def heuristic(self, belief):
+            # Heuristic: trung bình khoảng cách Manhattan nhỏ nhất từ mỗi trạng thái đến goal
+            total = 0
+            for state in belief:
+                min_dist = float('inf')
+                for goal in self.goal_states:
+                    dist = manhattan_distance(state, goal)
+                    min_dist = min(min_dist, dist)
+                total += min_dist
+            return total / len(belief) if belief else float('inf')
+
+    problem = NoObsEightPuzzleProblem(initial_belief_states, goal_belief_states)
+    start_time = time.time()
+
+    def a_star_search(initial_belief):
+        queue = []  # (f_score, counter, belief, path)
+        counter = 0
+        visited = set()
+        h_score = problem.heuristic(initial_belief)
+        heapq.heappush(queue, (h_score, counter, initial_belief, []))
+        counter += 1
+
+        while queue and time.time() - start_time < time_limit and counter < max_iterations:
+            f_score, _, belief, path = heapq.heappop(queue)
+            belief_tuple = tuple(sorted(belief))
+            if belief_tuple in visited:
+                continue
+            visited.add(belief_tuple)
+
+            if problem.goal_test(belief):
+                return path, len(visited)
+
+            for action in problem.get_possible_actions(belief):
+                next_belief = problem.transition(belief, action)
+                next_tuple = tuple(sorted(next_belief))
+                if next_tuple not in visited:
+                    new_path = path + [action]
+                    g_score = len(new_path)
+                    h_score = problem.heuristic(next_belief)
+                    heapq.heappush(queue, (g_score + h_score, counter, next_belief, new_path))
+                    counter += 1
+        return None, len(visited)
+
+    initial_belief = set(tuple(tuple(row) for row in s) for s in initial_belief_states)
+    if problem.goal_test(initial_belief):
+        return [[list(row) for row in s] for s in initial_belief], 0
+
+    plan, visited_count = a_star_search(initial_belief)
+    path = []
+    if plan:
+        # Tái tạo đường đi các belief state
+        current_belief = initial_belief
+        path.append([[list(row) for row in s] for s in current_belief])
+        for action in plan:
+            current_belief = problem.transition(current_belief, action)
+            path.append([[list(row) for row in s] for s in current_belief])
+        return path, len(plan)
     return [], 0

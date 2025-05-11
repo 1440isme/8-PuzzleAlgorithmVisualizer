@@ -7,7 +7,7 @@ from Algorithms.local_search import (hill_climbing, simple_hill_climbing,
                                    stochastic_hill_climbing, simulated_annealing,
                                    trial_and_error_search, beam_search,
                                    steepest_ascent_hill_climbing, genetic_algorithm)
-from Algorithms.complex import and_or_search, pomdp_solve
+from Algorithms.complex import and_or_search, pomdp_solve, no_observation_solve
 from Algorithms.probabilistic_search import belief_state_search, physical_search
 from Algorithms.constraint import backtracking_with_steps, backtracking_with_ac3
 from Models.puzzle import is_solvable
@@ -174,6 +174,10 @@ class PuzzleVisualizer(tk.Tk):
         pomdp_btn = self.create_button(complex_tab, "Partially Observable", 
                                    lambda: self.set_algorithm("Partially Observable"), width=18)
         pomdp_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
+        no_observation_btn = self.create_button(complex_tab, "No Observation", 
+                                   lambda: self.set_algorithm("No Observation"), width=18)
+        no_observation_btn.pack(side=tk.LEFT, padx=5, pady=10)
 
         belief_btn = self.create_button(probabilistic_tab, "Belief State Search",
                                     lambda: self.set_algorithm("Belief State Search"), width=18)
@@ -483,7 +487,7 @@ class PuzzleVisualizer(tk.Tk):
             return
             
         # Kiểm tra tính khả thi cho POMDP
-        if self.algorithm.get() == "Partially Observable":
+        if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
             if not isinstance(start_state, list) or not isinstance(goal_state, list):
                 messagebox.showerror("Error", "For Partially Observable, please enter multiple states (one per line)")
                 return
@@ -517,6 +521,8 @@ class PuzzleVisualizer(tk.Tk):
         # Thêm xử lý cho POMDP
         if self.algorithm.get() == "Partially Observable":
             self.solution_path, visited_count = pomdp_solve(start_state, goal_state)
+        elif self.algorithm.get() == "No Observation":
+            self.solution_path, visited_count = no_observation_solve(start_state, goal_state)
         elif self.algorithm.get() == "BFS":
             self.solution_path, visited_count = bfs(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "BFS Belief":
@@ -576,7 +582,7 @@ class PuzzleVisualizer(tk.Tk):
         runtime = end_time - start_time
         
         # Kiểm tra kết quả cho Partially Observable
-        if self.algorithm.get() == "Partially Observable":
+        if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
             if self.solution_path and len(self.solution_path) > 0:
                 steps = len(self.solution_path) - 1
                 self.log_text.insert(tk.END, f"Solution found!\n")
@@ -618,7 +624,7 @@ class PuzzleVisualizer(tk.Tk):
     def randomize_start_state(self):
         import random
         
-        if self.algorithm.get() == "Partially Observable":
+        if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
             # Sinh nhiều trạng thái hơn và gần nhau hơn
             num_states = random.randint(3, 5)  # Sinh 3-5 trạng thái
             start_states = []
@@ -692,7 +698,7 @@ class PuzzleVisualizer(tk.Tk):
             self.current_state = [start_states[0][i:i+3] for i in range(0, 9, 3)]
             self.draw_puzzle(self.current_state)
             
-            self.log_text.insert(tk.END, f"Generated {len(start_states)} random states for Partially Observable algorithm.\n")
+            self.log_text.insert(tk.END, f"Generated {len(start_states)} random states for Partially/No Observation algorithm.\n")
             self.log_text.insert(tk.END, f"Start states are 3-5 moves away from their corresponding goal states.\n")
             
         else:
@@ -724,7 +730,7 @@ class PuzzleVisualizer(tk.Tk):
     def parse_state(self, state_str):
         try:
             # Xử lý nhiều dòng cho belief states
-            if self.algorithm.get() == "Partially Observable":
+            if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
                 states = []
                 for line in state_str.strip().split('\n'):
                     if not line.strip():  # Bỏ qua dòng trống
@@ -745,8 +751,8 @@ class PuzzleVisualizer(tk.Tk):
                     raise ValueError("Invalid input")
                 return [nums[i:i+3] for i in range(0, 9, 3)]
         except:
-            if self.algorithm.get() == "Partially Observable":
-                messagebox.showerror("Error", "Invalid format for Partially Observable.\nPlease enter multiple states, one per line.\nEach line should contain 9 numbers from 0-8, separated by commas.\nExample:\n1,2,3,4,0,5,6,7,8\n1,2,3,4,5,0,6,7,8")
+            if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
+                messagebox.showerror("Error", "Invalid format for Partially Observable/No Observation.\nPlease enter multiple states, one per line.\nEach line should contain 9 numbers from 0-8, separated by commas.\nExample:\n1,2,3,4,0,5,6,7,8\n1,2,3,4,5,0,6,7,8")
             else:
                 messagebox.showerror("Error", "Invalid format. Please enter 9 numbers from 0-8, separated by commas (e.g., 1,2,3,4,0,5,6,7,8).")
             return None
@@ -778,7 +784,7 @@ class PuzzleVisualizer(tk.Tk):
                 self.draw_puzzle(state)
                 
                 # Hiển thị thông tin về các trạng thái hiện tại
-                if self.algorithm.get() == "Partially Observable":
+                if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
                     self.log_text.insert(tk.END, f"Step {step}: Showing one of {len(states)} possible states\n")
                 
                 after_id = self.after(delay, lambda: animate_step(step + 1))
@@ -794,20 +800,24 @@ class PuzzleVisualizer(tk.Tk):
                 self.data_text.delete(1.0, tk.END)
                 self.data_text.insert(tk.END, "Path Taken:\n")
                 for i, states in enumerate(self.solution_path):
-                    # Chuyển đổi trạng thái để hiển thị
-                    if isinstance(states, (list, tuple)):
-                        if len(states) == 9:  # Nếu là list phẳng
-                            state = [list(states[i:i+3]) for i in range(0, 9, 3)]
-                        elif len(states) == 3 and all(len(row) == 3 for row in states):  # Nếu đã là ma trận 3x3
-                            state = [list(row) for row in states]
-                        else:  # Nếu là danh sách các trạng thái
-                            state = [list(row) for row in states[0]]  # Lấy trạng thái đầu tiên để hiển thị
+                    if self.algorithm.get() == "Partially Observable" or self.algorithm.get() == "No Observation":
+                        # In ra toàn bộ các trạng thái trong belief state
+                        self.data_text.insert(tk.END, f"Step {i}: [\n")
+                        for s in states:
+                            self.data_text.insert(tk.END, f"  {s},\n")
+                        self.data_text.insert(tk.END, f"]\n  (One of {len(states)} possible states)\n")
                     else:
-                        continue
-                        
-                    self.data_text.insert(tk.END, f"Step {i}: {str(state)}\n")
-                    if self.algorithm.get() == "Partially Observable":
-                        self.data_text.insert(tk.END, f"  (One of {len(states)} possible states)\n")
+                        # Chuyển đổi trạng thái để hiển thị
+                        if isinstance(states, (list, tuple)):
+                            if len(states) == 9:  # Nếu là list phẳng
+                                state = [list(states[j:j+3]) for j in range(0, 9, 3)]
+                            elif len(states) == 3 and all(len(row) == 3 for row in states):  # Nếu đã là ma trận 3x3
+                                state = [list(row) for row in states]
+                            else:
+                                state = [list(row) for row in states[0]]
+                        else:
+                            continue
+                        self.data_text.insert(tk.END, f"Step {i}: {str(state)}\n")
                 self.log_text.insert(tk.END, "Animation completed.\n")
         
         animate_step()
