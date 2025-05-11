@@ -7,7 +7,7 @@ from Algorithms.local_search import (hill_climbing, simple_hill_climbing,
                                    stochastic_hill_climbing, simulated_annealing,
                                    trial_and_error_search, beam_search,
                                    steepest_ascent_hill_climbing, genetic_algorithm)
-from Algorithms.complex import and_or_search
+from Algorithms.complex import and_or_search, pomdp_solve
 from Algorithms.probabilistic_search import belief_state_search, physical_search
 from Algorithms.constraint import backtracking_with_steps, backtracking_with_ac3
 from Models.puzzle import is_solvable
@@ -170,6 +170,11 @@ class PuzzleVisualizer(tk.Tk):
                                    lambda: self.set_algorithm("AND-OR Search"), width=14)
         andor_btn.pack(side=tk.LEFT, padx=5, pady=10)
 
+        # Thêm nút POMDP vào tab Complex Environment
+        pomdp_btn = self.create_button(complex_tab, "Partially Observable", 
+                                   lambda: self.set_algorithm("Partially Observable"), width=18)
+        pomdp_btn.pack(side=tk.LEFT, padx=5, pady=10)
+
         belief_btn = self.create_button(probabilistic_tab, "Belief State Search",
                                     lambda: self.set_algorithm("Belief State Search"), width=18)
         belief_btn.pack(side=tk.LEFT, padx=5, pady=10)
@@ -187,6 +192,8 @@ class PuzzleVisualizer(tk.Tk):
                                lambda: self.set_algorithm("Backtracking - AC-3"), width=15)
         backtracking_ac3_btn.pack(side=tk.LEFT, padx=5, pady=10)
         
+        
+        
         # Main content with card-like design
         main_frame = tk.Frame(self, bg=self.colors["bg"])
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -203,23 +210,27 @@ class PuzzleVisualizer(tk.Tk):
         # Separator
         ttk.Separator(input_frame, orient='horizontal').pack(fill=tk.X, padx=10, pady=5)
         
-        # Nhóm các nút liên quan đến trạng thái
+        # Thay đổi phần nhập trạng thái để hỗ trợ nhiều dòng
         state_frame = tk.Frame(input_frame, bg=self.colors["frame_bg"])
         state_frame.pack(pady=10, padx=15, fill=tk.X)
         
         tk.Label(state_frame, text="START STATE:", font=("Segoe UI", 9),
                 fg=self.colors["label_fg"], bg=self.colors["frame_bg"]).pack(anchor=tk.W)
-        self.start_entry = tk.Entry(state_frame, width=20, font=("Segoe UI", 9),
-                                  relief=tk.SOLID, borderwidth=1)
-        self.start_entry.pack(pady=2, fill=tk.X)
-        self.start_entry.insert(0, "1,2,3,4,0,5,6,7,8")
+        
+        # Thay thế Entry bằng Text cho start state
+        self.start_text = tk.Text(state_frame, width=20, height=3, font=("Segoe UI", 9),
+                                relief=tk.SOLID, borderwidth=1)
+        self.start_text.pack(pady=2, fill=tk.X)
+        self.start_text.insert("1.0", "1,2,3,4,0,5,6,7,8")
         
         tk.Label(state_frame, text="GOAL STATE:", font=("Segoe UI", 9),
                 fg=self.colors["label_fg"], bg=self.colors["frame_bg"]).pack(anchor=tk.W, pady=(10, 0))
-        self.end_entry = tk.Entry(state_frame, width=20, font=("Segoe UI", 9),
-                                relief=tk.SOLID, borderwidth=1)
-        self.end_entry.pack(pady=2, fill=tk.X)
-        self.end_entry.insert(0, "1,2,3,4,5,6,7,8,0")
+        
+        # Thay thế Entry bằng Text cho goal state
+        self.end_text = tk.Text(state_frame, width=20, height=3, font=("Segoe UI", 9),
+                              relief=tk.SOLID, borderwidth=1)
+        self.end_text.pack(pady=2, fill=tk.X)
+        self.end_text.insert("1.0", "1,2,3,4,5,6,7,8,0")
         
         # Separator
         ttk.Separator(input_frame, orient='horizontal').pack(fill=tk.X, padx=10, pady=10)
@@ -462,27 +473,51 @@ class PuzzleVisualizer(tk.Tk):
         self.status_label.config(text=f"Current algorithm: {algo}")
         
     def solve_puzzle(self):
-        start_str = self.start_entry.get()
-        end_str = self.end_entry.get()
+        start_str = self.start_text.get("1.0", tk.END).strip()
+        end_str = self.end_text.get("1.0", tk.END).strip()
         
         start_state = self.parse_state(start_str)
         goal_state = self.parse_state(end_str)
         
         if not start_state or not goal_state:
             return
-        if is_solvable(start_state) != is_solvable(goal_state):
-            messagebox.showerror("Error", "Cannot solve from the start state to the goal state!")
-            return
+            
+        # Kiểm tra tính khả thi cho POMDP
+        if self.algorithm.get() == "Partially Observable":
+            if not isinstance(start_state, list) or not isinstance(goal_state, list):
+                messagebox.showerror("Error", "For Partially Observable, please enter multiple states (one per line)")
+                return
+            for state in start_state:
+                if not is_solvable(state):
+                    messagebox.showerror("Error", "One or more start states are not solvable!")
+                    return
+            for state in goal_state:
+                if not is_solvable(state):
+                    messagebox.showerror("Error", "One or more goal states are not solvable!")
+                    return
+        else:
+            # Kiểm tra bình thường cho các thuật toán khác
+            if is_solvable(start_state) != is_solvable(goal_state):
+                messagebox.showerror("Error", "Cannot solve from the start state to the goal state!")
+                return
         
         self.start_state = start_state
         self.goal_state = goal_state
-        self.current_state = copy.deepcopy(self.start_state)
+        # Lấy trạng thái đầu tiên để hiển thị
+        if isinstance(start_state, list):
+            self.current_state = copy.deepcopy(start_state[0])
+        else:
+            self.current_state = copy.deepcopy(start_state)
         
         self.log_text.delete(1.0, tk.END)
         self.log_text.insert(tk.END, f"Solving with {self.algorithm.get()}...\n")
         
         start_time = time.time()
-        if self.algorithm.get() == "BFS":
+        
+        # Thêm xử lý cho POMDP
+        if self.algorithm.get() == "Partially Observable":
+            self.solution_path, visited_count = pomdp_solve(start_state, goal_state)
+        elif self.algorithm.get() == "BFS":
             self.solution_path, visited_count = bfs(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
         elif self.algorithm.get() == "BFS Belief":
             self.solution_path, visited_count = bfs_belief(tuple(tuple(row) for row in self.start_state), tuple(tuple(row) for row in self.goal_state))
@@ -540,71 +575,180 @@ class PuzzleVisualizer(tk.Tk):
         end_time = time.time()
         runtime = end_time - start_time
         
-        # Kiểm tra trạng thái cuối cùng của solution_path để in thông báo
-        if self.solution_path:
-            # Chuyển đổi trạng thái cuối cùng để so sánh với goal_state
-            final_state = self.solution_path[-1]
-            if isinstance(final_state, (list, tuple)) and len(final_state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in final_state):
-                final_flat = [final_state[i][j] for i in range(3) for j in range(3)]
-            else:
-                final_flat = final_state
-            goal_flat = [self.goal_state[i][j] for i in range(3) for j in range(3)]
-            
-            if final_flat == goal_flat:
+        # Kiểm tra kết quả cho Partially Observable
+        if self.algorithm.get() == "Partially Observable":
+            if self.solution_path and len(self.solution_path) > 0:
                 steps = len(self.solution_path) - 1
                 self.log_text.insert(tk.END, f"Solution found!\n")
                 self.log_text.insert(tk.END, f"Number of steps: {steps}\n")
                 self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
                 self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
+                self.animate_solution()
             else:
                 self.log_text.insert(tk.END, "No solution found!\n")
                 self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
                 self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
         else:
-            self.log_text.insert(tk.END, "No solution found!\n")
-            self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
-            self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
-        
-        # Luôn hiển thị đường đi nếu solution_path không rỗng
-        if self.solution_path:
-            self.animate_solution()
+            # Kiểm tra bình thường cho các thuật toán khác
+            if self.solution_path:
+                final_state = self.solution_path[-1]
+                if isinstance(final_state, (list, tuple)) and len(final_state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in final_state):
+                    final_flat = [final_state[i][j] for i in range(3) for j in range(3)]
+                else:
+                    final_flat = final_state
+                    
+                goal_flat = [self.goal_state[i][j] for i in range(3) for j in range(3)]
+                
+                if final_flat == goal_flat:
+                    steps = len(self.solution_path) - 1
+                    self.log_text.insert(tk.END, f"Solution found!\n")
+                    self.log_text.insert(tk.END, f"Number of steps: {steps}\n")
+                    self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
+                    self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
+                    self.animate_solution()
+                else:
+                    self.log_text.insert(tk.END, "No solution found!\n")
+                    self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
+                    self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
+            else:
+                self.log_text.insert(tk.END, "No solution found!\n")
+                self.log_text.insert(tk.END, f"Time taken: {runtime:.4f} seconds\n")
+                self.log_text.insert(tk.END, f"Number of states explored: {visited_count}\n")
     
     def randomize_start_state(self):
         import random
         
-        # Lấy trạng thái mục tiêu
-        goal_state = [int(x.strip()) for x in self.end_entry.get().split(",")]
-        goal_inversions = sum(1 for i in range(len(goal_state)) for j in range(i+1, len(goal_state))
-                            if goal_state[i] != 0 and goal_state[j] != 0 and goal_state[i] > goal_state[j])
-        goal_parity = goal_inversions % 2
-        
-        # Tạo trạng thái ngẫu nhiên khả thi
-        while True:
-            start_state = list(range(9))
-            random.shuffle(start_state)
-            inversions = sum(1 for i in range(len(start_state)) for j in range(i+1, len(start_state))
-                            if start_state[i] != 0 and start_state[j] != 0 and start_state[i] > start_state[j])
-            if inversions % 2 == goal_parity:
-                break
-        
-        # Cập nhật ô nhập START
-        self.start_entry.delete(0, tk.END)
-        self.start_entry.insert(0, ",".join(map(str, start_state)))
-        
-        # Cập nhật trạng thái hiện tại và vẽ lại
-        self.start_state = [start_state[i:i+3] for i in range(0, 9, 3)]
-        self.current_state = copy.deepcopy(self.start_state)
-        self.draw_puzzle(self.current_state)
-        self.log_text.insert(tk.END, f"Random start state generated: {','.join(map(str, start_state))}\n")
+        if self.algorithm.get() == "Partially Observable":
+            # Sinh nhiều trạng thái hơn và gần nhau hơn
+            num_states = random.randint(3, 5)  # Sinh 3-5 trạng thái
+            start_states = []
+            goal_states = []
+            
+            # Sinh trạng thái mục tiêu đầu tiên
+            while True:
+                goal_state = list(range(9))
+                random.shuffle(goal_state)
+                goal_matrix = [goal_state[i:i+3] for i in range(0, 9, 3)]
+                if is_solvable(goal_matrix):
+                    goal_states.append(goal_state)
+                    break
+            
+            # Sinh các trạng thái mục tiêu khác gần với mục tiêu đầu tiên
+            for _ in range(num_states - 1):
+                current_goal = goal_states[-1].copy()
+                # Thực hiện 2-3 bước di chuyển ngẫu nhiên
+                for _ in range(random.randint(2, 3)):
+                    zero_pos = current_goal.index(0)
+                    possible_moves = []
+                    if zero_pos >= 3:  # Có thể di chuyển lên
+                        possible_moves.append(zero_pos - 3)
+                    if zero_pos < 6:  # Có thể di chuyển xuống
+                        possible_moves.append(zero_pos + 3)
+                    if zero_pos % 3 != 0:  # Có thể di chuyển trái
+                        possible_moves.append(zero_pos - 1)
+                    if zero_pos % 3 != 2:  # Có thể di chuyển phải
+                        possible_moves.append(zero_pos + 1)
+                    
+                    if possible_moves:
+                        swap_pos = random.choice(possible_moves)
+                        current_goal[zero_pos], current_goal[swap_pos] = current_goal[swap_pos], current_goal[zero_pos]
+                
+                goal_states.append(current_goal)
+            
+            # Sinh trạng thái bắt đầu gần với mục tiêu tương ứng
+            for goal_state in goal_states:
+                # Tạo trạng thái bắt đầu bằng cách thực hiện 3-5 bước di chuyển ngẫu nhiên
+                start_state = goal_state.copy()
+                for _ in range(random.randint(3, 5)):
+                    zero_pos = start_state.index(0)
+                    possible_moves = []
+                    if zero_pos >= 3:  # Có thể di chuyển lên
+                        possible_moves.append(zero_pos - 3)
+                    if zero_pos < 6:  # Có thể di chuyển xuống
+                        possible_moves.append(zero_pos + 3)
+                    if zero_pos % 3 != 0:  # Có thể di chuyển trái
+                        possible_moves.append(zero_pos - 1)
+                    if zero_pos % 3 != 2:  # Có thể di chuyển phải
+                        possible_moves.append(zero_pos + 1)
+                    
+                    if possible_moves:
+                        swap_pos = random.choice(possible_moves)
+                        start_state[zero_pos], start_state[swap_pos] = start_state[swap_pos], start_state[zero_pos]
+                
+                start_states.append(start_state)
+            
+            # Cập nhật ô nhập START và GOAL
+            self.start_text.delete("1.0", tk.END)
+            self.end_text.delete("1.0", tk.END)
+            
+            for state in start_states:
+                self.start_text.insert(tk.END, ",".join(map(str, state)) + "\n")
+            for state in goal_states:
+                self.end_text.insert(tk.END, ",".join(map(str, state)) + "\n")
+            
+            # Cập nhật trạng thái hiện tại và vẽ lại
+            self.start_state = start_states
+            self.goal_state = goal_states
+            self.current_state = [start_states[0][i:i+3] for i in range(0, 9, 3)]
+            self.draw_puzzle(self.current_state)
+            
+            self.log_text.insert(tk.END, f"Generated {len(start_states)} random states for Partially Observable algorithm.\n")
+            self.log_text.insert(tk.END, f"Start states are 3-5 moves away from their corresponding goal states.\n")
+            
+        else:
+            # Logic cũ cho các thuật toán khác
+            goal_state = [int(x.strip()) for x in self.end_text.get("1.0", tk.END).split(",")]
+            goal_inversions = sum(1 for i in range(len(goal_state)) for j in range(i+1, len(goal_state))
+                                if goal_state[i] != 0 and goal_state[j] != 0 and goal_state[i] > goal_state[j])
+            goal_parity = goal_inversions % 2
+            
+            # Tạo trạng thái ngẫu nhiên khả thi
+            while True:
+                start_state = list(range(9))
+                random.shuffle(start_state)
+                inversions = sum(1 for i in range(len(start_state)) for j in range(i+1, len(start_state))
+                                if start_state[i] != 0 and start_state[j] != 0 and start_state[i] > start_state[j])
+                if inversions % 2 == goal_parity:
+                    break
+            
+            # Cập nhật ô nhập START
+            self.start_text.delete("1.0", tk.END)
+            self.start_text.insert("1.0", ",".join(map(str, start_state)))
+            
+            # Cập nhật trạng thái hiện tại và vẽ lại
+            self.start_state = [start_state[i:i+3] for i in range(0, 9, 3)]
+            self.current_state = copy.deepcopy(self.start_state)
+            self.draw_puzzle(self.current_state)
+            self.log_text.insert(tk.END, f"Random start state generated: {','.join(map(str, start_state))}\n")
     
     def parse_state(self, state_str):
         try:
-            nums = [int(x.strip()) for x in state_str.split(",")]
-            if len(nums) != 9 or set(nums) != set(range(9)):
-                raise ValueError("Invalid input")
-            return [nums[i:i+3] for i in range(0, 9, 3)]
+            # Xử lý nhiều dòng cho belief states
+            if self.algorithm.get() == "Partially Observable":
+                states = []
+                for line in state_str.strip().split('\n'):
+                    if not line.strip():  # Bỏ qua dòng trống
+                        continue
+                    nums = [int(x.strip()) for x in line.split(",")]
+                    if len(nums) != 9 or set(nums) != set(range(9)):
+                        raise ValueError("Invalid input")
+                    # Chuyển đổi thành ma trận 3x3
+                    state = []
+                    for i in range(0, 9, 3):
+                        state.append(nums[i:i+3])
+                    states.append(state)
+                return states
+            else:
+                # Xử lý bình thường cho các thuật toán khác
+                nums = [int(x.strip()) for x in state_str.split(",")]
+                if len(nums) != 9 or set(nums) != set(range(9)):
+                    raise ValueError("Invalid input")
+                return [nums[i:i+3] for i in range(0, 9, 3)]
         except:
-            messagebox.showerror("Error", "Invalid format. Please enter 9 numbers from 0-8, separated by commas (e.g., 1,2,3,4,0,5,6,7,8).")
+            if self.algorithm.get() == "Partially Observable":
+                messagebox.showerror("Error", "Invalid format for Partially Observable.\nPlease enter multiple states, one per line.\nEach line should contain 9 numbers from 0-8, separated by commas.\nExample:\n1,2,3,4,0,5,6,7,8\n1,2,3,4,5,0,6,7,8")
+            else:
+                messagebox.showerror("Error", "Invalid format. Please enter 9 numbers from 0-8, separated by commas (e.g., 1,2,3,4,0,5,6,7,8).")
             return None
             
     def animate_solution(self):
@@ -618,14 +762,25 @@ class PuzzleVisualizer(tk.Tk):
         
         def animate_step(step=0):
             if step < len(self.solution_path):
-                state = self.solution_path[step]
+                states = self.solution_path[step]
                 # Chuyển đổi trạng thái thành danh sách 3x3 nếu cần
-                if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
-                    state = [list(row) for row in state]
+                if isinstance(states, (list, tuple)):
+                    if len(states) == 9:  # Nếu là list phẳng
+                        state = [list(states[i:i+3]) for i in range(0, 9, 3)]
+                    elif len(states) == 3 and all(len(row) == 3 for row in states):  # Nếu đã là ma trận 3x3
+                        state = [list(row) for row in states]
+                    else:  # Nếu là danh sách các trạng thái
+                        state = [list(row) for row in states[0]]  # Lấy trạng thái đầu tiên để hiển thị
                 else:
-                    state = [list(state[i:i+3]) for i in range(0, 9, 3)]
+                    return
+                    
                 self.current_state = state
                 self.draw_puzzle(state)
+                
+                # Hiển thị thông tin về các trạng thái hiện tại
+                if self.algorithm.get() == "Partially Observable":
+                    self.log_text.insert(tk.END, f"Step {step}: Showing one of {len(states)} possible states\n")
+                
                 after_id = self.after(delay, lambda: animate_step(step + 1))
                 self.after_ids.append(after_id)  # Store the after_id
             else:
@@ -638,13 +793,21 @@ class PuzzleVisualizer(tk.Tk):
                 # Hiển thị toàn bộ đường đi trong DataStructure
                 self.data_text.delete(1.0, tk.END)
                 self.data_text.insert(tk.END, "Path Taken:\n")
-                for i, state in enumerate(self.solution_path):
+                for i, states in enumerate(self.solution_path):
                     # Chuyển đổi trạng thái để hiển thị
-                    if isinstance(state, (list, tuple)) and len(state) == 3 and all(isinstance(row, (list, tuple)) and len(row) == 3 for row in state):
-                        state = [list(row) for row in state]
+                    if isinstance(states, (list, tuple)):
+                        if len(states) == 9:  # Nếu là list phẳng
+                            state = [list(states[i:i+3]) for i in range(0, 9, 3)]
+                        elif len(states) == 3 and all(len(row) == 3 for row in states):  # Nếu đã là ma trận 3x3
+                            state = [list(row) for row in states]
+                        else:  # Nếu là danh sách các trạng thái
+                            state = [list(row) for row in states[0]]  # Lấy trạng thái đầu tiên để hiển thị
                     else:
-                        state = [list(state[i:i+3]) for i in range(0, 9, 3)]
+                        continue
+                        
                     self.data_text.insert(tk.END, f"Step {i}: {str(state)}\n")
+                    if self.algorithm.get() == "Partially Observable":
+                        self.data_text.insert(tk.END, f"  (One of {len(states)} possible states)\n")
                 self.log_text.insert(tk.END, "Animation completed.\n")
         
         animate_step()
@@ -707,6 +870,15 @@ class PuzzleVisualizer(tk.Tk):
                 fill="#666666", width=1
             )
         
+        # Chuyển đổi state thành ma trận 3x3 nếu cần
+        if isinstance(state, (list, tuple)):
+            if len(state) == 9:  # Nếu là list phẳng
+                state = [state[i:i+3] for i in range(0, 9, 3)]
+            elif len(state) == 3 and all(len(row) == 3 for row in state):  # Nếu đã là ma trận 3x3
+                state = state
+            else:  # Nếu không phải định dạng hợp lệ
+                return
+        
         # Then draw the individual cell content
         for i in range(3):
             for j in range(3):
@@ -715,7 +887,23 @@ class PuzzleVisualizer(tk.Tk):
                 x1 = x0 + cell_size
                 y1 = y0 + cell_size
                 
-                if state[i][j] is not None and state[i][j] != 0:
+                # Lấy giá trị từ state và xử lý
+                try:
+                    value = state[i][j]
+                    if isinstance(value, list):
+                        if len(value) > 0:
+                            value = value[0]
+                        else:
+                            value = 0
+                    
+                    try:
+                        value = int(value)
+                    except (TypeError, ValueError):
+                        value = 0
+                except (IndexError, TypeError):
+                    value = 0
+                
+                if value is not None and value != 0:
                     # Create shadow
                     self.canvas.create_rectangle(
                         x0 + 3, y0 + 3, 
@@ -724,7 +912,7 @@ class PuzzleVisualizer(tk.Tk):
                     )
                     
                     # Create tile
-                    color = self.colors["puzzle_colors"][state[i][j]-1]
+                    color = self.colors["puzzle_colors"][value-1]
                     self.canvas.create_rectangle(
                         x0, y0, x1, y1, 
                         fill=color, outline="#666666", 
@@ -734,7 +922,7 @@ class PuzzleVisualizer(tk.Tk):
                     # Add number with subtle shadow for 3D effect
                     self.canvas.create_text(
                         (x0+x1)//2 + 1, (y0+y1)//2 + 1, 
-                        text=str(state[i][j]), 
+                        text=str(value), 
                         font=("Segoe UI", int(cell_size//3), "bold"), 
                         fill="#333333"
                     )
