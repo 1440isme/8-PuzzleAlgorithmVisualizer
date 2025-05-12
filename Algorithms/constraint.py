@@ -10,6 +10,23 @@ def backtracking_with_steps(initial_state, goal_state):
         else:
             raise ValueError("State must be a 3x3 grid (list/tuple of lists/tuples) or a flat list/tuple with 9 elements")
 
+    # Hàm kiểm tra tính liên tục của các số
+    def is_continuous_sequence(board, pos):
+        if pos == 0:  # Ô đầu tiên có thể điền bất kỳ số nào
+            return True
+        # Tìm số lớn nhất đã điền trước đó
+        max_num = -1
+        for i in range(pos):
+            row, col = divmod(i, 3)
+            if board[row][col] is not None:
+                max_num = max(max_num, board[row][col])
+        
+        # Nếu đã điền đến số 8, số tiếp theo phải là 0
+        if max_num == 8:
+            return board[pos // 3][pos % 3] == 0
+        # Ngược lại, số tiếp theo phải là max_num + 1
+        return board[pos // 3][pos % 3] == max_num + 1
+
     # Chuyển goal_state về dạng danh sách phẳng
     goal_flat = flatten_state(goal_state)
 
@@ -43,6 +60,10 @@ def backtracking_with_steps(initial_state, goal_state):
         for idx, num in enumerate(remaining_numbers):
             # Đặt số vào ô (i,j)
             board[i][j] = num
+            # Kiểm tra tính liên tục
+            if not is_continuous_sequence(board, pos):
+                board[i][j] = None
+                continue
             # Lưu trạng thái hiện tại để hiển thị animation
             steps.append([row[:] for row in board])
             visited_count += 1
@@ -140,6 +161,23 @@ def backtracking_with_ac3(initial_state, goal_state):
         else:
             raise ValueError("State must be a 3x3 grid (list/tuple of lists/tuples) or a flat list/tuple with 9 elements")
 
+    # Hàm kiểm tra tính liên tục của các số
+    def is_continuous_sequence(board, pos):
+        if pos == 0:  # Ô đầu tiên có thể điền bất kỳ số nào
+            return True
+        # Tìm số lớn nhất đã điền trước đó
+        max_num = -1
+        for i in range(pos):
+            row, col = divmod(i, 3)
+            if board[row][col] is not None:
+                max_num = max(max_num, board[row][col])
+        
+        # Nếu đã điền đến số 8, số tiếp theo phải là 0
+        if max_num == 8:
+            return board[pos // 3][pos % 3] == 0
+        # Ngược lại, số tiếp theo phải là max_num + 1
+        return board[pos // 3][pos % 3] == max_num + 1
+
     # Chuyển goal_state về dạng danh sách phẳng
     goal_flat = flatten_state(goal_state)
 
@@ -219,6 +257,11 @@ def backtracking_with_ac3(initial_state, goal_state):
                 continue
                 
             board[i][j] = value
+            # Kiểm tra tính liên tục
+            if not is_continuous_sequence(board, pos):
+                board[i][j] = None
+                continue
+                
             steps.append([row[:] for row in board])
             visited_count += 1
             
