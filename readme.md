@@ -59,9 +59,13 @@ Sử dụng giao diện Tkinter để cung cấp trải nghiệm tương tác, c
    ![UCS](./img/GIF/ucs.gif)
 4. **IDS (Iterative Deepening Search):**
    - Kết hợp DFS và BFS bằng cách tăng dần độ sâu giới hạn cho DFS. Điều này cho phép tìm kiếm theo chiều sâu nhưng vẫn đảm bảo tìm được giải pháp tối ưu.
+   ![IDS](./img/GIF/ids.gif)
 
 #### Solution
 - **Solution** là một đường đi từ trạng thái ban đầu đến trạng thái mục tiêu, được biểu diễn dưới dạng một danh sách các trạng thái và các hành động tương ứng. Trong mỗi thuật toán, nếu tìm thấy trạng thái mục tiêu, kết quả trả về sẽ bao gồm đường đi và số trạng thái đã duyệt qua. Nếu không tìm thấy, kết quả sẽ là danh sách rỗng.
+
+### Bảng so sánh các thuật toán
+   ![UnInfo](./img/thumb/uninfo.png)
 
 #### Nhận xét
 - Nếu cần **đảm bảo tối ưu lời giải** và không bị giới hạn tài nguyên bộ nhớ, **BFS** hoặc **UCS** là lựa chọn phù hợp. Tuy nhiên, bộ nhớ cao có thể là vấn đề lớn.
@@ -95,14 +99,20 @@ Sử dụng giao diện Tkinter để cung cấp trải nghiệm tương tác, c
 1. **Greedy Search:**
    - Chỉ sử dụng giá trị heuristic để quyết định trạng thái nào sẽ được mở rộng tiếp theo.
    - Hàng đợi ưu tiên (priority queue) được sử dụng để lưu trữ các trạng thái, với độ ưu tiên dựa trên giá trị heuristic.
+   ![Greedy](./img/GIF/greedy.gif)
 2. **A* Search:**
    - Kết hợp chi phí đã đi qua (`g`) và giá trị heuristic (`h`) để tính tổng chi phí dự đoán (`f = g + h`).
    - Hàng đợi ưu tiên được sử dụng để mở rộng trạng thái có giá trị `f` thấp nhất.
+   ![A*](./img/GIF/a_star.gif)
 3. **IDA* Search (Iterative Deepening A*):**
    - Một phiên bản cải tiến của A*, sử dụng giá trị `f` làm giới hạn ngắt (threshold) và tìm kiếm theo chiều sâu (DFS) với giới hạn tăng dần.
+   ![IDA*](./img/GIF/ida_astar.gif)
 
 #### Solution
 - **Solution** là một đường đi từ trạng thái ban đầu đến trạng thái mục tiêu, được biểu diễn dưới dạng một danh sách các trạng thái và các hành động tương ứng. Trong mỗi thuật toán, nếu tìm thấy trạng thái mục tiêu, kết quả trả về sẽ bao gồm đường đi và số trạng thái đã duyệt qua. Nếu không tìm thấy, kết quả sẽ là danh sách rỗng.
+
+### Bảng so sánh thuật toán
+   ![Info](./img/thumb/info.png)
 
 #### Nhận xét
 - Nếu bộ nhớ không bị giới hạn, **A*** là lựa chọn ưu tiên để giải bài toán 8-puzzle vì vừa đảm bảo tối ưu, vừa tận dụng heuristic để tăng tốc độ tìm kiếm.
@@ -138,24 +148,33 @@ Sử dụng giao diện Tkinter để cung cấp trải nghiệm tương tác, c
 1. **Hill Climbing:**
    - Luôn chọn trạng thái lân cận có heuristic tốt nhất so với trạng thái hiện tại.
    - Dễ rơi vào cực tiểu cục bộ (local minima).
+   ![Hill Climbing](./img/GIF/hill_climbing.gif)
 2. **Steepest Ascent Hill Climbing:**
    - Xét tất cả các trạng thái lân cận và chọn trạng thái có heuristic tốt nhất.
    - Tăng khả năng tìm được trạng thái tốt hơn so với Hill Climbing thông thường.
+   ![Steepest HC](./img/thumb/steepest.png)
 3. **Stochastic Hill Climbing:**
    - Chọn ngẫu nhiên một trạng thái lân cận tốt hơn, thay vì chọn trạng thái tốt nhất.
    - Giảm nguy cơ bị mắc kẹt trong cực tiểu địa phương.
+   ![Stochastic](./img/thumb/stocha_hc.png)
 4. **Simulated Annealing:**
    - Cho phép chuyển sang trạng thái "kém hơn" với xác suất giảm dần theo nhiệt độ (temperature).
    - Giảm nguy cơ rơi vào cực tiểu địa phương.
+   ![Simulated](./img/thumb/stimulated.png)
 5. **Beam Search:**
    - Duy trì một số lượng giới hạn các trạng thái tốt nhất (beam width) tại mỗi bước.
    - Tiết kiệm bộ nhớ nhưng có thể bỏ qua trạng thái dẫn đến lời giải.
+   ![Beam](./img/GIF/beamseach.gif)
 6. **Genetic Algorithm:**
    - Tạo ra một quần thể các trạng thái ban đầu, sau đó duyệt qua nhiều thế hệ để tối ưu hóa dựa trên phép lai và đột biến.
    - Có khả năng khám phá rộng rãi không gian trạng thái nhưng không đảm bảo lời giải tối ưu trong số lượng thế hệ hạn chế.
+   ![Genetic](./img/GIF/genetic.gif)
 
 #### Solution
 - **Solution** là một đường đi từ trạng thái ban đầu đến trạng thái mục tiêu, được biểu diễn dưới dạng một danh sách các trạng thái và các hành động tương ứng. Trong mỗi thuật toán, nếu tìm thấy trạng thái mục tiêu, kết quả trả về sẽ bao gồm đường đi và số trạng thái đã duyệt qua. Nếu không tìm thấy, kết quả sẽ là danh sách rỗng.
+
+### Bảng so sánh thuật toán
+   ![Local](./img/thumb/local.png)
 
 #### Nhận xét
 - **Simulated Annealing** và **Genetic Algorithm** là hai thuật toán phù hợp nhất để giải bài toán 8-puzzle trong nhóm tìm kiếm cục bộ, nhờ khả năng thoát khỏi cực tiểu địa phương.
@@ -194,19 +213,25 @@ Sử dụng giao diện Tkinter để cung cấp trải nghiệm tương tác, c
      - Xử lý bài toán bằng cách kết hợp AND nodes và OR nodes.
      - OR nodes đại diện cho các hành động có thể thực hiện, AND nodes đại diện cho tập hợp trạng thái kết quả từ hành động.
    - **Ứng dụng:** Giải bài toán 8-puzzle trong môi trường chắc chắn (deterministic).
+   ![AndOr](./img/GIF/and_or.gif)
 2. **Partially Observable:**
    - **Nguyên tắc hoạt động:**
      - Áp dụng A* Search trên belief states, tối ưu hóa hành động dựa trên phân phối xác suất của các trạng thái.
      - Tính toán xác suất chuyển trạng thái và quan sát để cập nhật belief state.
    - **Ứng dụng:** Giải bài toán 8-puzzle khi có nhiễu trong quan sát (nhìn thấy 1 phần).
+   ![Partially Obs](./img/GIF/part_obs.gif)
 3. **No Observation:**
    - **Nguyên tắc hoạt động:**
      - Áp dụng A* Search trên belief states mà không có thông tin quan sát.
      - Giải quyết bài toán bằng cách đảm bảo mọi trạng thái trong belief state đều đạt được trạng thái mục tiêu.
    - **Ứng dụng:** Giải bài toán 8-puzzle khi không có khả năng quan sát trạng thái.
+   ![No Obs](./img/GIF/no_obs.gif)
 
 #### Solution
 - **Solution** là một đường đi từ trạng thái ban đầu đến trạng thái mục tiêu, được biểu diễn dưới dạng một danh sách các trạng thái và các hành động tương ứng. Trong mỗi thuật toán, nếu tìm thấy trạng thái mục tiêu, kết quả trả về sẽ bao gồm đường đi và số trạng thái đã duyệt qua. Nếu không tìm thấy, kết quả sẽ là danh sách rỗng.
+
+### Bảng so sánh thuật toán
+   ![Complex](./img/thumb/complex.png)
 
 #### Nhận xét
 - **AND-OR Search** là lựa chọn phù hợp cho bài toán 8-puzzle trong môi trường chắc chắn, nơi không có nhiễu hoặc không có sự không chắc chắn trong trạng thái và hành động.
@@ -247,18 +272,24 @@ Sử dụng giao diện Tkinter để cung cấp trải nghiệm tương tác, c
      - Quay lui nếu không tìm được lời giải khả thi.
      - Lưu trữ các bước để hiển thị quá trình tìm lời giải.
    - **Ứng dụng:** Giải bài toán ràng buộc đơn giản, không cần giảm miền giá trị.
+   ![Backtracking CSP](./img/GIF/back_csp.gif)
 2. **Backtracking AC-3:**
    - **Nguyên tắc hoạt động:**
      - Kết hợp AC-3 để thu hẹp miền giá trị trước khi thực hiện Backtracking.
    - **Ứng dụng:** Giải bài toán ràng buộc phức tạp, tối ưu hóa hiệu suất so với Backtracking thông thường.
+   ![Backtracking AC3](./img/GIF/back_ac3.gif)
 3. **Trial and Error:**
    - **Nguyên tắc hoạt động:**
      - Thử nghiệm ngẫu nhiên các hành động và trạng thái lân cận.
      - Sử dụng heuristic (Manhattan Distance) để ưu tiên các trạng thái gần mục tiêu hơn.
    - **Ứng dụng:** Giải bài toán bằng cách thử nghiệm ngẫu nhiên, không đảm bảo tối ưu.
+   ![Trial Error](./img/GIF/trial_error.gif)
 
 #### Solution
 - **Solution** là một đường đi từ trạng thái ban đầu đến trạng thái mục tiêu, được biểu diễn dưới dạng một danh sách các trạng thái và các hành động tương ứng. Trong mỗi thuật toán, nếu tìm thấy trạng thái mục tiêu, kết quả trả về sẽ bao gồm đường đi và số trạng thái đã duyệt qua. Nếu không tìm thấy, kết quả sẽ là danh sách rỗng.
+
+### Bảng so sánh thuật toán
+   ![Contraints](./img/thumb/contraints.png)
 
 #### Nhận xét
 - **Backtracking AC-3** là thuật toán hiệu quả nhất trong nhóm, đặc biệt khi giải bài toán 8-puzzle với trạng thái ban đầu phức tạp hoặc nhiều ràng buộc.
@@ -307,6 +338,7 @@ Sử dụng giao diện Tkinter để cung cấp trải nghiệm tương tác, c
      - Học giá trị Q bằng cách cải thiện dần dần qua các tập huấn luyện (episodes).
      - Cập nhật Q-value dựa trên phần thưởng nhận được sau mỗi hành động.
    - **Ứng dụng:** Giải bài toán 8-Puzzle bằng cách học từ môi trường mà không cần biết trước toàn bộ không gian trạng thái.
+   ![Q-Learning](./img/GIF/q_learning.gif)
 
 #### Solution
 - **Solution** là một đường đi từ trạng thái ban đầu đến trạng thái mục tiêu, được biểu diễn dưới dạng một danh sách các trạng thái và các hành động tương ứng. Trong mỗi thuật toán, nếu tìm thấy trạng thái mục tiêu, kết quả trả về sẽ bao gồm đường đi và số trạng thái đã duyệt qua. Nếu không tìm thấy, kết quả sẽ là danh sách rỗng.
