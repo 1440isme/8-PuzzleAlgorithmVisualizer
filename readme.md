@@ -84,7 +84,7 @@ Sử dụng giao diện Tkinter để cung cấp trải nghiệm tương tác, c
 4. **Tập hợp các hành động (Actions):**
    - Các hành động có thể thực hiện trên trạng thái hiện tại để chuyển sang trạng thái mới. Cụ thể trong 8-Puzzle, các hành động là di chuyển ô trống lên, xuống, trái, hoặc phải.
 5. **Hàm chuyển đổi (Transition Function):**
-   - Hàm xác định trạng thái mới sau khi thực hiện một hành động cụ thể từ trạng thái hiện tại. Nguyên lý hoạt động của hàm chuyển đổi (dfs_recursion trong dfs và dls trong ids):
+   - Hàm xác định trạng thái mới sau khi thực hiện một hành động cụ thể từ trạng thái hiện tại. Nguyên lý hoạt động của hàm chuyển đổi:
      - **Xác định vị trí ô trống (blank):** blank_i, blank_j để tìm tọa độ cần di chuyển.
      - **Danh sách các hành động (moves):** Mô tả cách di chuyển ô trống (lên, xuống, trái, phải).
      - **Kiểm tra điều kiện hợp lệ:** Đảm bảo tọa độ mới nằm trong giới hạn puzzle.
