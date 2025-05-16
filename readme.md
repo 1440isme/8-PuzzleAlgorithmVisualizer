@@ -1,4 +1,17 @@
-# Giải Bài Toán 8-Puzzle với Các Thuật Toán Trí Tuệ Nhân Tạo
+
+
+<div align="center">
+
+# 8-Puzzle Algorithm Visualizer
+ ## Đồ án cá nhân Trí tuệ nhân tạo
+
+ ### Sinh viên thực hiện
+ **Họ và tên:** Trương Công Bình  
+ **MSSV:** 23110184 
+ ### Thông tin thêm (About more)
+ [English version ![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/1440isme/8-PuzzleAlgorithmVisualizer)
+
+</div>
 
 ## 1. Mục tiêu
 
